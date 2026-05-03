@@ -8,6 +8,8 @@ in vec2 TexCoord;
 
 layout (location = 0) out vec4 FragColor;
 
+uniform int UseTexture;
+
 uniform struct LightInfo{
     vec4 Position;
     vec3 La;
@@ -45,9 +47,16 @@ void main() {
     float dist=abs(Position.z);
     float fogFactor=(Fog.MaxDist-dist)/(Fog.MaxDist-Fog.MinDist);
     fogFactor=clamp(fogFactor,0.0,1.0);
-    vec2 uv = clamp(TexCoord, 0.001, 0.999);
-    vec3 texColor = texture(DiffuseTex, uv).rgb;
-    vec3 shadeColor = texColor * blinnPhong(Position, normalize(Normal));
+    vec3 baseColor;
+
+    if (UseTexture == 1) {
+        vec2 uv = clamp(TexCoord, 0.001, 0.999);
+        baseColor = texture(DiffuseTex, uv).rgb;
+    } else {
+        baseColor = Material.Kd;
+    }
+    vec3 shadeColor = baseColor * blinnPhong(Position, normalize(Normal));
+
     float rim = 1.0 - max(dot(normalize(Normal), normalize(-Position)), 0.0);
     vec3 rimColor = vec3(1.0) * pow(rim, 3.0);
     shadeColor += rimColor * 0.25;     

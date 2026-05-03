@@ -115,5 +115,8 @@
     <ClInclude Include="helper\plane.h">
       <Filter>helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\Project_Template\Project_Template\10 PBR\helper\camera.h">
+      <Filter>helper</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
