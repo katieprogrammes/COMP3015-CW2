@@ -13,6 +13,8 @@
 #include "helper/objmesh.h"
 #include "helper/plane.h"
 
+#include "helper/frustum.h"
+
 class SceneBasic_Uniform : public Scene
 {
 private:
@@ -22,7 +24,13 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog;
+    GLSLProgram prog, solidProg;
+    GLuint shadowFBO, pass1Index, pass2Index, depthTex;
+    int shadowMapWidth, shadowMapHeight;
+    glm::mat4 lightPV, shadowBias;
+    int currentPass = 0;
+
+
     glm::mat4 rotationMatrix;
 
     //objects
@@ -48,10 +56,14 @@ private:
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 
-    void compile();
+    Frustum lightFrustum;
     void setMatrices();
+    void compile();
 
-
+    void setupFBO();
+    void drawScene();
+    void spitOutDepthBuffer();
+    
 public:
     SceneBasic_Uniform();
 

@@ -2,11 +2,13 @@
 
 in vec3 Position;
 in vec3 Normal;
-
-uniform sampler2D DiffuseTex;
+in vec4 ShadowCoord;
 in vec2 TexCoord;
 
 layout (location = 0) out vec4 FragColor;
+
+uniform sampler2D DiffuseTex;
+uniform sampler2DShadow ShadowMap;
 
 uniform int UseTexture;
 
@@ -14,6 +16,7 @@ uniform struct LightInfo{
     vec4 Position;
     vec3 La;
     vec3 L;
+    vec3 Intensity;
 } Light;
 
 uniform struct MaterialInfo{
@@ -43,23 +46,55 @@ vec3 blinnPhong(vec3 position, vec3 n){
     return ambient+(diffuse+spec)*Light.L;
 }
 
-void main() {
-    float dist=abs(Position.z);
-    float fogFactor=(Fog.MaxDist-dist)/(Fog.MaxDist-Fog.MinDist);
-    fogFactor=clamp(fogFactor,0.0,1.0);
-    vec3 baseColor;
+subroutine void RenderPassType();
+subroutine uniform RenderPassType RenderPass;
 
+subroutine (RenderPassType)
+void shadeWithShadow()
+{
+
+    //Base colour
+    vec3 baseColor;
     if (UseTexture == 1) {
         vec2 uv = clamp(TexCoord, 0.001, 0.999);
         baseColor = texture(DiffuseTex, uv).rgb;
     } else {
         baseColor = Material.Kd;
     }
-    vec3 shadeColor = baseColor * blinnPhong(Position, normalize(Normal));
+    vec3 lit = baseColor * blinnPhong(Position, normalize(Normal));
 
+    //Shadow
+    float shadow = 1.0;
+	if( ShadowCoord.z >= 0 ) {
+		shadow = textureProj(ShadowMap, ShadowCoord);
+	}
+
+    shadow = pow(shadow, 3.0); //Makes shadow stronger
+
+    //Applying shadow to relevant areas
+    vec3 ambient = baseColor * Light.La * Material.Ka;
+    vec3 nonAmbient = lit - ambient;
+    lit = ambient + nonAmbient * shadow;
+
+    //Rim lighting
     float rim = 1.0 - max(dot(normalize(Normal), normalize(-Position)), 0.0);
-    vec3 rimColor = vec3(1.0) * pow(rim, 3.0);
-    shadeColor += rimColor * 0.25;     
-    vec3 color=mix(Fog.Color,shadeColor,fogFactor);
-    FragColor = vec4(color, 1.0);
+    lit += vec3(1.0) * pow(rim, 3.0) * 0.1;
+
+    //Fog
+    float dist = abs(Position.z);
+    float fogFactor = clamp((Fog.MaxDist - dist) / (Fog.MaxDist - Fog.MinDist), 0.0, 1.0);
+    vec3 finalColor = mix(Fog.Color, lit, fogFactor);
+
+    FragColor = vec4(finalColor, 1.0);
+    //FragColor = vec4(lit, 1.0);
+}
+
+subroutine (RenderPassType)
+void recordDepth()
+{
+	// Do nothing, depth will be written automatically
+}
+
+void main() {
+    RenderPass();
 }

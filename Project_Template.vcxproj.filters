@@ -60,12 +60,21 @@
     <ClCompile Include="helper\plane.cpp">
       <Filter>helper</Filter>
     </ClCompile>
+    <ClCompile Include="helper\frustum.cpp">
+      <Filter>helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\basic_uniform.frag">
       <Filter>shaders</Filter>
     </None>
     <None Include="shader\basic_uniform.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\solid.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\solid.vs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -113,6 +122,9 @@
       <Filter>helper</Filter>
     </ClInclude>
     <ClInclude Include="helper\plane.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\frustum.h">
       <Filter>helper</Filter>
     </ClInclude>
   </ItemGroup>
