@@ -22,14 +22,14 @@ using glm::mat4;
 
 SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), plane(250.0f, 250.0f, 1, 1), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
 {
-    tree = ObjMesh::load("media/tree/trees9.obj", true);
+    tree = ObjMesh::load("media/Linden.obj", true);
 }
 
 void SceneBasic_Uniform::initScene()
 {
     compile();
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.0, 0.0, 0.1, 1.0); //setup background colourOk
+    glClearColor(0.0, 0.0, 0.1, 1.0); //setup background colour
 
     view = glm::lookAt(vec3(0.0f, 4.0f, 6.0f), vec3(0.0f, 2.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     projection = mat4(1.0f);
@@ -39,12 +39,26 @@ void SceneBasic_Uniform::initScene()
     prog.use(); 
     prog.setUniform("Light.L", vec3(0.9f));
     prog.setUniform("Light.La", vec3(0.5f));
-    prog.setUniform("Fog.MaxDist", 75.0f);
+    prog.setUniform("Fog.MaxDist", 50.0f);
     prog.setUniform("Fog.MinDist", 1.0f);
     prog.setUniform("Fog.Color", vec3(0.5f, 0.5f, 0.5f));
 
     window = glfwGetCurrentContext();
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    //Randomising tree placement
+
+    for (int i = 0; i < treeCount; i++) {
+        float x = (rand() % 100 - 50); //randomise placement
+        float z = (rand() % 100 - 50);
+
+        treesPosition.push_back(glm::vec3(x, 2.0f, z));
+        treesScale.push_back(0.05f + (rand() % 200) * 0.01f);
+        treesRotation.push_back((rand() % 360));
+
+        float tint = 0.6f + (rand() % 40) / 100.0f;
+        treeGreenTint.push_back(tint);
+    }
 }
 
 void SceneBasic_Uniform::compile()
@@ -109,19 +123,32 @@ void SceneBasic_Uniform::render()
     prog.setUniform("Light.Position", vec4(view * lightPos));
 
     //tree
-    prog.setUniform("Material.Kd", vec3(0.2f, 0.8f, 0.2f));
-    prog.setUniform("Material.Ks", vec3(0.95f, 0.95f, 0.95f));
-    prog.setUniform("Material.Ka", vec3(0.2f * 0.3f, 0.55f * 0.3f, 0.9f * 0.3f));
-    prog.setUniform("Material.Shininess", 100.0f);
-    prog.setUniform("UseTexture", 1);
-    model = glm::translate(mat4(1.0f), vec3(0.0f, 10.0f, -20.0f));
-    setMatrices();
-    tree->render();
+    for (int i = 0; i < treeCount; i++) {
+
+        prog.setUniform("Material.Kd", vec3(0.05f, 0.35f, 0.05f));
+        prog.setUniform("Material.Ks", vec3(0.2f));
+        prog.setUniform("Material.Ka", vec3(0.05f));
+        prog.setUniform("Material.Shininess", 50.0f);
+        prog.setUniform("UseTexture", 0);
+
+        model = mat4(1.0f);
+
+        glm::vec3 pos = treesPosition[i];
+        pos.y += 7.5f;
+
+        model = glm::translate(model, pos);
+        model = glm::rotate(model, glm::radians(treesRotation[i]), vec3(0, 1, 0));
+        model = glm::scale(model, vec3(treesScale[i]));
+
+        setMatrices();
+        tree->render();
+    }
+
 
 
 
     //plane
-    prog.setUniform("Material.Kd", vec3(0.255, 0.353, 0.118));
+    prog.setUniform("Material.Kd", vec3(0.122, 0.078, 0.078));
     prog.setUniform("Material.Ks", vec3(0.02f, 0.04f, 0.02f));
     prog.setUniform("Material.Ka", vec3(0.0f));
     prog.setUniform("Material.Shininess", 10.0f);

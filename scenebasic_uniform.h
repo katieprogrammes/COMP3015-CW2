@@ -28,6 +28,12 @@ private:
     //objects
     Plane plane;
     std::unique_ptr<ObjMesh> tree;
+    std::vector<glm::vec3> treesPosition;
+    std::vector<float> treesScale;
+    std::vector<float> treesRotation;
+    std::vector<float> treeGreenTint;
+
+    int treeCount = 40;
 
     //camera
     float yaw = -90.0f;

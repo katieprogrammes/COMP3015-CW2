@@ -162,7 +162,6 @@
     <None Include="shader\basic_uniform.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Project_Template\Project_Template\10 PBR\helper\camera.h" />
     <ClInclude Include="helper\aabb.h" />
     <ClInclude Include="helper\drawable.h" />
     <ClInclude Include="helper\glslprogram.h" />
