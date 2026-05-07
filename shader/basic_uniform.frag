@@ -65,8 +65,14 @@ void shadeWithShadow()
 
     //Shadow
     float shadow = 1.0;
+    float sum = 0.0;
+
 	if( ShadowCoord.z >= 0 ) {
-		shadow = textureProj(ShadowMap, ShadowCoord);
+        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2(-1, -1));
+        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2(-1,  1));
+        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2( 1,  1));
+        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2( 1, -1));
+        shadow = sum * 0.25;
 	}
 
     shadow = pow(shadow, 3.0); //Makes shadow stronger
