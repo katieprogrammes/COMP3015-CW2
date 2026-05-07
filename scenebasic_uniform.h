@@ -57,6 +57,11 @@ private:
 
 
     Frustum lightFrustum;
+
+    int samplesU, samplesV;
+    int jitterMapSize;
+    float radius;
+
     void setMatrices();
     void compile();
 
@@ -64,6 +69,8 @@ private:
     void drawScene();
     void spitOutDepthBuffer();
     
+    float jitter();
+    void buildJitterTex();
 public:
     SceneBasic_Uniform();
 

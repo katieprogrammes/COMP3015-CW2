@@ -77,6 +77,18 @@
     <None Include="shader\solid.vs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shader\shadowvolume-render.vs">
+      <Filter>helper</Filter>
+    </None>
+    <None Include="shader\shadowvolume-comp.fs">
+      <Filter>helper</Filter>
+    </None>
+    <None Include="shader\shadowvolume-comp.vs">
+      <Filter>helper</Filter>
+    </None>
+    <None Include="shader\shadowvolume-render.fs">
+      <Filter>helper</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper\scene.h">
@@ -125,6 +137,12 @@
       <Filter>helper</Filter>
     </ClInclude>
     <ClInclude Include="helper\frustum.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\random.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\particleutils.h">
       <Filter>helper</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,6 +9,9 @@ layout (location = 0) out vec4 FragColor;
 
 uniform sampler2D DiffuseTex;
 uniform sampler2DShadow ShadowMap;
+uniform sampler3D OffsetTex;
+uniform float Radius;
+uniform vec3 OffsetTexSize; //(width, height depth)
 
 uniform int UseTexture;
 
@@ -66,14 +69,35 @@ void shadeWithShadow()
     //Shadow
     float shadow = 1.0;
     float sum = 0.0;
+    ivec3 offsetCoord;
+    offsetCoord.xy = ivec2(mod(gl_FragCoord.xy, OffsetTexSize.xy));
+    int samplesDiv2 = int(OffsetTexSize.z);
 
-	if( ShadowCoord.z >= 0 ) {
-        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2(-1, -1));
-        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2(-1,  1));
-        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2( 1,  1));
-        sum += textureProjOffset(ShadowMap, ShadowCoord, ivec2( 1, -1));
-        shadow = sum * 0.25;
-	}
+	vec4 sc = ShadowCoord;
+	// Don't test points behind the light source.
+	if( sc.z >= 0 ) {
+	    for( int i = 0 ; i < 4; i++ ) {
+		    offsetCoord.z = i;
+		    vec4 offsets = texelFetch(OffsetTex,offsetCoord,0) * Radius * ShadowCoord.w;
+		    sc.xy = ShadowCoord.xy + offsets.xy;
+		    sum += textureProj(ShadowMap, sc);
+		    sc.xy = ShadowCoord.xy + offsets.zw;
+		    sum += textureProj(ShadowMap, sc);
+	    }
+	    shadow = sum / 8.0;
+	    if( shadow != 1.0 && shadow != 0.0 ) {
+		    for( int i = 4; i < samplesDiv2; i++ ) {
+			    offsetCoord.z = i;
+			    vec4 offsets = texelFetch(OffsetTex, offsetCoord,0) * Radius * ShadowCoord.w;
+			    sc.xy = ShadowCoord.xy + offsets.xy;
+			    sum += textureProj(ShadowMap, sc);
+			    sc.xy = ShadowCoord.xy + offsets.zw;
+			    sum += textureProj(ShadowMap, sc);
+		    }
+		    shadow = sum / float(samplesDiv2 * 2.0);
+		    }
+	    }
+
 
     shadow = pow(shadow, 3.0); //Makes shadow stronger
 

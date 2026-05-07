@@ -14,14 +14,22 @@ using std::endl;
 #include "helper/glutils.h"
 #include "helper/texture.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include "helper/particleutils.h"
 
 using glm::vec3;
 using glm::vec4;
 using glm::mat3;
 using glm::mat4;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), shadowMapWidth(512), shadowMapHeight(512), plane(250.0f, 250.0f, 1, 1), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
+SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), plane(250.0f, 250.0f, 1, 1), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
 {
+    shadowMapWidth = 512;
+    shadowMapHeight = 512;
+
+    samplesU = 4;
+    samplesV = 8;
+    jitterMapSize = 8;
+    radius = 7.0f;
     tree = ObjMesh::load("media/Linden.obj", true);
 }
 
@@ -38,6 +46,7 @@ void SceneBasic_Uniform::initScene()
     angle = 0.0f;
 
     setupFBO();
+    buildJitterTex();
 
     GLuint programHandle = prog.getHandle();
     pass1Index = glGetSubroutineIndex(programHandle, GL_FRAGMENT_SHADER, "recordDepth");
@@ -54,7 +63,7 @@ void SceneBasic_Uniform::initScene()
     lightFrustum.orient(lightPos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
     lightFrustum.setPerspective(60.0f, 1.0f, 1.0f, 300.0f);
 
-
+    lightPV = shadowBias * lightFrustum.getProjectionMatrix() * lightFrustum.getViewMatrix();
 
 
     prog.use(); 
@@ -65,6 +74,9 @@ void SceneBasic_Uniform::initScene()
     prog.setUniform("Fog.MinDist", 5.0f);
     prog.setUniform("Fog.Color", vec3(0.3f));
     prog.setUniform("ShadowMap", 0);
+    prog.setUniform("OffsetTex", 1);
+    prog.setUniform("Radius", radius / 512.0f);
+    prog.setUniform("OffsetTexSize", vec3(jitterMapSize, jitterMapSize, samplesU * samplesV / 2.0f));
 
     window = glfwGetCurrentContext();
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -142,7 +154,6 @@ void SceneBasic_Uniform::update(float t)
 void SceneBasic_Uniform::render()
 {
     prog.use();
-    lightPV = shadowBias * lightFrustum.getProjectionMatrix() * lightFrustum.getViewMatrix();
     // Pass 1 (shadow map generation)
     view = lightFrustum.getViewMatrix();
     projection = lightFrustum.getProjectionMatrix();
@@ -289,4 +300,56 @@ void SceneBasic_Uniform::setupFBO()
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void SceneBasic_Uniform::buildJitterTex()
+{
+    int size = jitterMapSize;
+    int samples = samplesU * samplesV;
+    int bufSize = size * size * samples * 2;
+    float* data = new float[bufSize];
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            for (int k = 0; k < samples; k += 2) {
+                int x1, y1, x2, y2;
+                x1 = k % (samplesU);
+                y1 = (samples - 1 - k) / samplesU;
+                x2 = (k + 1) % samplesU;
+                y2 = (samples - 1 - k - 1) / samplesU;
+                vec4 v;
+                // Center on grid and jitter
+                v.x = (x1 + 0.5f) + jitter();
+                v.y = (y1 + 0.5f) + jitter();
+                v.z = (x2 + 0.5f) + jitter();
+                v.w = (y2 + 0.5f) + jitter();
+                // Scale between 0 and 1
+                v.x /= samplesU;
+                v.y /= samplesV;
+                v.z /= samplesU;
+                v.w /= samplesV;
+                // Warp to disk
+                int cell = ((k / 2) * size * size + j * size + i) * 4;
+                data[cell + 0] = sqrtf(v.y) * cosf(glm::two_pi<float>() * v.x);
+                data[cell + 1] = sqrtf(v.y) * sinf(glm::two_pi<float>() * v.x);
+                data[cell + 2] = sqrtf(v.w) * cosf(glm::two_pi<float>() * v.z);
+                data[cell + 3] = sqrtf(v.w) * sinf(glm::two_pi<float>() * v.z);
+            }
+        }
+    }
+    glActiveTexture(GL_TEXTURE1);
+    GLuint texID;
+    glGenTextures(1, &texID);
+    glBindTexture(GL_TEXTURE_3D, texID);
+    glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32F, size, size, samples / 2);
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, size, size, samples / 2, GL_RGBA, GL_FLOAT, data);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    delete[] data;
+}
+
+// Return random float between -0.5 and 0.5
+float SceneBasic_Uniform::jitter() {
+    static std::default_random_engine generator;
+    static std::uniform_real_distribution<float> distrib(-0.5f, 0.5f);
+    return distrib(generator);
 }
