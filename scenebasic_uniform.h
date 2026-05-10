@@ -67,8 +67,16 @@ private:
     std::vector<float> treesRotation;
     std::vector<float> treeGreenTint;
 
+    std::vector<std::unique_ptr<ObjMesh>> shrubMeshes;
+
+    std::vector<glm::vec3> shrubPositions;
+    std::vector<float> shrubScales;
+    std::vector<float> shrubRotations;
+    std::vector<float> shrubGreenTint;
+    std::vector<int> shrubMeshIndex;
     
     int treeCount = 120;
+    int shrubCount = 300;
 
     //fairy movement
     std::vector<glm::vec3> fairyOrbitCenters;
@@ -103,6 +111,25 @@ private:
     glm::vec3 dustPosition = glm::vec3(0.0f);
     float dustTimer = 0.0f;
 
+    //game logic
+    std::vector<glm::vec3> fairyPositions;
+    std::vector<bool> fairyCollected;
+    std::vector<glm::vec3> evilFairyPositions;
+    std::vector<glm::vec3> evilFairyOrbitCenters;
+    std::vector<float> evilFairyAngleOffsets;
+
+    int totalEvilFairies = 5;
+
+    float corruptionTimer = 0.0f;
+    float corruptionDuration = 2.0f;
+
+    void updateEvilFairyOrbits(float t);
+    void checkEvilFairyCollision();
+
+    int score = 0;
+    int totalFairies = 8;
+    bool gameWon = false;
+
     void setMatrices();
     void compile();
 
@@ -128,13 +155,6 @@ private:
     void renderText();
     void drawText(const std::string& text, float x, float y, float scale, const glm::vec4& color);
 
-    //game logic
-    std::vector<glm::vec3> fairyPositions;
-    std::vector<bool> fairyCollected;
-
-    int score = 0;
-    int totalFairies = 8;
-    bool gameWon = false;
 public:
     SceneBasic_Uniform();
 

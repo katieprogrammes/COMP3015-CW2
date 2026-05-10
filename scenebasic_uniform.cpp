@@ -52,6 +52,10 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     jitterMapSize = 8;
     radius = 7.0f;
     tree = ObjMesh::load("media/Linden.obj", true);
+
+    shrubMeshes.push_back(ObjMesh::load("media/shrub1.obj", true));
+    shrubMeshes.push_back(ObjMesh::load("media/shrub2.obj", true));
+    //shrubMeshes.push_back(ObjMesh::load("media/shrub3.obj", true));
 }
 
 void SceneBasic_Uniform::initScene()
@@ -133,7 +137,30 @@ void SceneBasic_Uniform::initScene()
         float tint = 0.6f + (rand() % 40) / 100.0f;
         treeGreenTint.push_back(tint);
     }
-    //Fairy placement
+
+    //Randomising shrub placement
+    for (int i = 0; i < shrubCount; i++)
+    {
+        float x = randomFloat(-45.0f, 45.0f);
+        float z = randomFloat(-45.0f, 45.0f);
+
+        glm::vec2 shrubXZ(x, z);
+        glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+
+        if (glm::distance(shrubXZ, playerXZ) < 4.0f)
+            continue;
+
+        shrubPositions.push_back(glm::vec3(x, 0.5f, z));
+        shrubScales.push_back(randomFloat(3.0f, 5.0f));
+        shrubRotations.push_back(randomFloat(0.0f, 360.0f));
+
+        float tint = randomFloat(0.65f, 1.0f);
+        shrubGreenTint.push_back(tint);
+
+        int meshChoice = rand() % shrubMeshes.size();
+        shrubMeshIndex.push_back(meshChoice);
+    }
+    //Good Fairy placement
     totalFairies = 9;
 
     fairyPositions.clear();
@@ -176,6 +203,45 @@ void SceneBasic_Uniform::initScene()
 
         fairyPositions.push_back(glm::vec3(worldPos));
         fairyCollected.push_back(false);
+    }
+
+    //Evil fairy placement
+    totalEvilFairies = 5;
+
+    evilFairyPositions.clear();
+    evilFairyOrbitCenters.clear();
+    evilFairyAngleOffsets.clear();
+
+    for (int i = 0; i < totalEvilFairies; i++)
+    {
+        glm::vec3 spawnCenter;
+
+        spawnCenter.x = randomFloat(-24.0f, 24.0f);
+        spawnCenter.y = 4.0f;
+        spawnCenter.z = randomFloat(-24.0f, 16.0f);
+
+        glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
+        glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+
+        while (glm::distance(spawnXZ, playerXZ) < 6.0f)
+        {
+            spawnCenter.x = randomFloat(-24.0f, 24.0f);
+            spawnCenter.z = randomFloat(-24.0f, 16.0f);
+            spawnXZ = glm::vec2(spawnCenter.x, spawnCenter.z);
+        }
+
+        float angle = randomFloat(0.0f, glm::two_pi<float>());
+
+        evilFairyOrbitCenters.push_back(spawnCenter);
+        evilFairyAngleOffsets.push_back(angle);
+
+        glm::mat4 orbit = glm::mat4(1.0f);
+        orbit = glm::translate(orbit, spawnCenter);
+        orbit = glm::rotate(orbit, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        orbit = glm::translate(orbit, glm::vec3(fairyOrbitRadius, 0.0f, 0.0f));
+
+        glm::vec4 worldPos = orbit * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        evilFairyPositions.push_back(glm::vec3(worldPos));
     }
 
     fairyCollected.resize(fairyPositions.size(), false);
@@ -280,19 +346,23 @@ void SceneBasic_Uniform::update(float t)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += right * speed;
 
+    // Update moving fairies before checking collection/collision
     updateFairyOrbits(t);
+    updateEvilFairyOrbits(t);
 
-    //game mechanic logic
-
+    // Blue fairy rescue logic
     if (!gameWon)
     {
         for (int i = 0; i < fairyPositions.size(); i++)
         {
             if (!fairyCollected[i])
             {
-                float distanceToFairy = glm::distance(cameraPos, fairyPositions[i]);
+                glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+                glm::vec2 fairyXZ(fairyPositions[i].x, fairyPositions[i].z);
 
-                if (distanceToFairy < 1.5f)
+                float distanceToFairy = glm::distance(playerXZ, fairyXZ);
+
+                if (distanceToFairy < 2.2f)
                 {
                     fairyCollected[i] = true;
                     score++;
@@ -321,6 +391,16 @@ void SceneBasic_Uniform::update(float t)
                 }
             }
         }
+
+        checkEvilFairyCollision();
+    }
+
+    if (corruptionTimer > 0.0f)
+    {
+        corruptionTimer -= deltaTime;
+
+        if (corruptionTimer < 0.0f)
+            corruptionTimer = 0.0f;
     }
 
 }
@@ -368,15 +448,24 @@ void SceneBasic_Uniform::render()
 
     if (gameWon)
     {
-        prog.setUniform("Fog.MaxDist", 80.0f);
-        prog.setUniform("Fog.MinDist", 25.0f);
+        //win state
+        prog.setUniform("Fog.MaxDist", 500.0f);
+        prog.setUniform("Fog.MinDist", 100.0f);
         prog.setUniform("Fog.Color", vec3(0.55f, 0.75f, 0.95f));
+    }
+    else if (corruptionTimer > 0.0f)
+    {
+        //corrupt state
+        prog.setUniform("Fog.MaxDist", 16.0f);
+        prog.setUniform("Fog.MinDist", 1.0f);
+        prog.setUniform("Fog.Color", vec3(0.06f, 0.0f, 0.08f));
     }
     else
     {
-        prog.setUniform("Fog.MaxDist", 50.0f);
-        prog.setUniform("Fog.MinDist", 5.0f);
-        prog.setUniform("Fog.Color", vec3(0.3f));
+        //normalstate
+        prog.setUniform("Fog.MaxDist", 35.0f);
+        prog.setUniform("Fog.MinDist", 3.0f);
+        prog.setUniform("Fog.Color", vec3(0.12f, 0.16f, 0.22f));
     }
 
     drawScene();
@@ -442,9 +531,62 @@ void SceneBasic_Uniform::render()
             fairySphere.render();
         }
     }
+    
+    // Draw corrupted red fairies
+    if (!gameWon)
+    {
+        solidProg.setUniform("UseFairyNoise", 0);
+
+        for (int i = 0; i < evilFairyPositions.size(); i++)
+        {
+            float flicker = 0.5f + 0.5f * sin(glfwGetTime() * 7.0f + i * 1.9f);
+
+
+            mat4 evilAuraModel = mat4(1.0f);
+            evilAuraModel = glm::translate(evilAuraModel, evilFairyPositions[i]);
+            evilAuraModel = glm::scale(evilAuraModel, vec3(1.4f + 0.5f * flicker));
+
+            solidProg.setUniform(
+                "Color",
+                vec4(
+                    1.0f,
+                    0.05f,
+                    0.25f,
+                    0.28f + 0.2f * flicker
+                )
+            );
+
+            solidProg.setUniform("MVP", projection * view * evilAuraModel);
+            fairySphere.render();
+
+            mat4 evilCoreModel = mat4(1.0f);
+            evilCoreModel = glm::translate(evilCoreModel, evilFairyPositions[i]);
+            evilCoreModel = glm::scale(evilCoreModel, vec3(0.35f + 0.12f * flicker));
+
+            solidProg.setUniform(
+                "Color",
+                vec4(
+                    1.0f,
+                    0.0f,
+                    0.08f,
+                    1.0f
+                )
+            );
+
+            solidProg.setUniform("MVP", projection * view * evilCoreModel);
+            fairySphere.render();
+        }
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    solidProg.use();
+    solidProg.setUniform("UseFairyNoise", 0);
+
     if (dustActive)
     {
         renderFairyDust(dustPosition);
+
 
         dustTimer += particleDeltaT;
 
@@ -453,11 +595,6 @@ void SceneBasic_Uniform::render()
             dustActive = false;
         }
     }
-
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-    solidProg.use();
-    solidProg.setUniform("UseFairyNoise", 0);
 
     renderText();
 }
@@ -471,7 +608,7 @@ void SceneBasic_Uniform::drawScene()
         prog.setUniform("Light.Position", vec4(view * lightPos));
     }
 
-    //tree
+    //trees
     for (int i = 0; i < treeCount; i++) {
 
         prog.setUniform("Material.Kd", vec3(0.05f, 0.35f, 0.05f));
@@ -483,18 +620,50 @@ void SceneBasic_Uniform::drawScene()
         model = mat4(1.0f);
 
         glm::vec3 pos = treesPosition[i];
-        pos.y += 1.0f;
+        pos.y += 3.0f;
 
 
         model = glm::translate(model, pos);
         model = glm::rotate(model, glm::radians(treesRotation[i]), vec3(0, 1, 0));
-        model = glm::scale(model, vec3(treesScale[i]));
+        model = glm::scale(model, vec3(
+            treesScale[i] * 0.9f,   // width
+            treesScale[i] * 1.2f,   // height
+            treesScale[i] * 0.9f    // depth
+        ));
 
         setMatrices();
         tree->render();
     }
+
+    //shrubs
+    for (int i = 0; i < shrubPositions.size(); i++)
+    {
+        float tint = shrubGreenTint[i];
+
+        prog.setUniform("Material.Kd", vec3(
+            0.04f * tint,
+            0.22f * tint,
+            0.05f * tint
+        ));
+
+        prog.setUniform("Material.Ks", vec3(0.02f));
+        prog.setUniform("Material.Ka", vec3(0.08f));
+        prog.setUniform("Material.Shininess", 8.0f);
+        prog.setUniform("UseTexture", 0);
+
+        model = mat4(1.0f);
+
+        glm::vec3 pos = shrubPositions[i];
+
+        model = glm::translate(model, pos);
+        model = glm::rotate(model, glm::radians(shrubRotations[i]), vec3(0.0f, 1.0f, 0.0f));
+
+        model = glm::scale(model, vec3(shrubScales[i]));
+
+        setMatrices();
+        shrubMeshes[shrubMeshIndex[i]]->render();
+    }
     //plane
-    //prog.setUniform("Material.Kd", vec3(0.122, 0.078, 0.078));
     prog.setUniform("Material.Kd", vec3(0.35f, 0.42f, 0.30f));
     prog.setUniform("Material.Ks", vec3(0.02f));
     prog.setUniform("Material.Ka", vec3(0.20f));
@@ -751,6 +920,20 @@ void SceneBasic_Uniform::renderText()
 
     drawText(scoreText, 20.0f, 30.0f, 2.0f, glm::vec4(0.75f, 0.95f, 1.0f, 1.0f));
 
+    drawText("Collect Blue Fairies", 550.0f, 30.0f, 2.0f, glm::vec4(0.0, 0.435, 1.0, 1.0));
+    drawText("Avoid Red Fairies", 550.0f, 50.0f, 2.0f, glm::vec4(1.0, 0.0, 0.0, 1.0));
+
+    if (corruptionTimer > 0.0f && !gameWon)
+    {
+        drawText(
+            "Corruption!",
+            20.0f,
+            65.0f,
+            2.0f,
+            glm::vec4(1.0f, 0.2f, 0.45f, 1.0f)
+        );
+    }
+
     if (gameWon)
     {
         drawText("The grove is restored", 20.0f, 65.0f, 2.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
@@ -948,6 +1131,59 @@ void SceneBasic_Uniform::updateFairyOrbits(float t)
         fairyPositions[i] = glm::vec3(worldPos);
     }
 }
+
+void SceneBasic_Uniform::updateEvilFairyOrbits(float t)
+{
+    if (gameWon)
+        return;
+
+    for (int i = 0; i < evilFairyPositions.size(); i++)
+    {
+        float angle = evilFairyAngleOffsets[i] - t * fairyOrbitSpeed * 1.25f;
+
+        float bob =
+            sin(t * fairyBobSpeed * 1.4f + evilFairyAngleOffsets[i]) *
+            fairyBobAmount;
+
+        glm::mat4 orbit = glm::mat4(1.0f);
+
+        orbit = glm::translate(orbit, evilFairyOrbitCenters[i]);
+        orbit = glm::rotate(orbit, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        orbit = glm::translate(orbit, glm::vec3(fairyOrbitRadius * 1.2f, bob, 0.0f));
+
+        glm::vec4 worldPos = orbit * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+        evilFairyPositions[i] = glm::vec3(worldPos);
+    }
+}
+void SceneBasic_Uniform::checkEvilFairyCollision()
+{
+    if (gameWon)
+        return;
+
+    for (int i = 0; i < evilFairyPositions.size(); i++)
+    {
+        glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+        glm::vec2 evilXZ(evilFairyPositions[i].x, evilFairyPositions[i].z);
+
+        float distanceToEvilFairy = glm::distance(playerXZ, evilXZ);
+
+        if (distanceToEvilFairy < 2.2f)
+        {
+            corruptionTimer = corruptionDuration;
+
+            std::cout << "Corruption touched the player!" << std::endl;
+
+            // Move the evil fairy away so it does not repeatedly trigger every frame.
+            evilFairyOrbitCenters[i].x = randomFloat(-24.0f, 24.0f);
+            evilFairyOrbitCenters[i].z = randomFloat(-24.0f, 16.0f);
+
+            break;
+        }
+    }
+}
+
+
 void SceneBasic_Uniform::initSkybox()
 {
     float skyboxVertices[] = {
