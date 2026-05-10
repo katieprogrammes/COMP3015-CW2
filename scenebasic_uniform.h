@@ -28,7 +28,7 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog, solidProg, uiProg;
+    GLSLProgram prog, solidProg, uiProg, particleProg;
     GLuint shadowFBO, pass1Index, pass2Index, depthTex;
     int shadowMapWidth, shadowMapHeight;
     glm::mat4 lightPV, shadowBias;
@@ -41,6 +41,19 @@ private:
 
     glm::mat4 rotationMatrix;
 
+    //particles
+    GLuint particleArray[2];
+    GLuint feedback[2];
+    GLuint posBuf[2];
+    GLuint velBuf[2];
+    GLuint ageBuf[2];
+
+    int drawBuf = 1;
+    int nParticles = 800;
+    float particleLifetime = 3.0f;
+    float particleTime = 0.0f;
+    float particleDeltaT = 0.0f;
+
     //objects
     Plane plane;
     Sphere fairySphere;
@@ -50,6 +63,7 @@ private:
     std::vector<float> treesRotation;
     std::vector<float> treeGreenTint;
 
+    
     int treeCount = 40;
 
     //camera
@@ -72,6 +86,10 @@ private:
     int jitterMapSize;
     float radius;
 
+    bool dustActive = false;
+    glm::vec3 dustPosition = glm::vec3(0.0f);
+    float dustTimer = 0.0f;
+
     void setMatrices();
     void compile();
 
@@ -81,6 +99,10 @@ private:
     
     float jitter();
     void buildJitterTex();
+
+    void initParticleBuffers();
+    void renderFairyDust(const glm::vec3& fairyPos);
+    void resetFairyDust();
 
     void initText();
     void renderText();

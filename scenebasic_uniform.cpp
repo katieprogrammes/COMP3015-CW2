@@ -23,7 +23,17 @@ using glm::vec4;
 using glm::mat3;
 using glm::mat4;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), plane(250.0f, 250.0f, 1, 1), fairySphere(0.2f, 16, 16), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
+SceneBasic_Uniform::SceneBasic_Uniform() : 
+    tPrev(0), 
+    plane(250.0f, 250.0f, 1, 1), 
+    fairySphere(0.2f, 16, 16), 
+    angle(90.0f), 
+    rotSpeed(glm::pi<float>()/16.0f), 
+    drawBuf(1), 
+    nParticles(55),
+    particleLifetime(3.5f),
+    particleTime(0.0f),
+    particleDeltaT(0.0f)
 {
     shadowMapWidth = 512;
     shadowMapHeight = 512;
@@ -52,6 +62,22 @@ void SceneBasic_Uniform::initScene()
     setupFBO();
     buildJitterTex();
     noiseTex = NoiseTex::generatePeriodic2DTex(4.0f, 0.5f, 256, 256);
+
+    glEnable(GL_BLEND);
+
+    glActiveTexture(GL_TEXTURE3);
+    Texture::loadTexture("media/texture/bluewater.png");
+
+    glActiveTexture(GL_TEXTURE4);
+    ParticleUtils::createRandomTex1D(nParticles * 3);
+
+    initParticleBuffers();
+
+    particleProg.use();
+    particleProg.setUniform("RandomTex", 4);
+    particleProg.setUniform("ParticleLifetime", particleLifetime);
+    particleProg.setUniform("ParticleSize", 0.035f);
+    particleProg.setUniform("Accel", vec3(0.0f, 0.0f, 0.0f));
 
     GLuint programHandle = prog.getHandle();
     pass1Index = glGetSubroutineIndex(programHandle, GL_FRAGMENT_SHADER, "recordDepth");
@@ -129,6 +155,20 @@ void SceneBasic_Uniform::compile()
         uiProg.compileShader("shader/ui.fs", GLSLShader::FRAGMENT);
         uiProg.link();
 
+        particleProg.compileShader("shader/fairy_particle.vs", GLSLShader::VERTEX);
+        particleProg.compileShader("shader/fairy_particle.fs", GLSLShader::FRAGMENT);
+
+        GLuint particleHandle = particleProg.getHandle();
+        const char* outputNames[] = { "Position", "Velocity", "Age" };
+        glTransformFeedbackVaryings(
+            particleHandle,
+            3,
+            outputNames,
+            GL_SEPARATE_ATTRIBS
+        );
+
+        particleProg.link();
+
 	} catch (GLSLProgramException &e) {
 		cerr << e.what() << endl;
 		exit(EXIT_FAILURE);
@@ -139,6 +179,8 @@ void SceneBasic_Uniform::update(float t)
 {
     deltaTime = t - tPrev;
     tPrev = t;
+    particleDeltaT = deltaTime;
+    particleTime = t;
 
     //Camera
     double xpos, ypos;
@@ -206,6 +248,11 @@ void SceneBasic_Uniform::update(float t)
                     fairyCollected[i] = true;
                     score++;
 
+                    dustPosition = fairyPositions[i];
+                    dustTimer = 0.0f;
+                    dustActive = true;
+                    resetFairyDust();
+
                     std::cout << "Fairy collected! Score: "
                         << score << " / " << totalFairies << std::endl;
 
@@ -226,6 +273,7 @@ void SceneBasic_Uniform::update(float t)
             }
         }
     }
+
 }
 
 void SceneBasic_Uniform::render()
@@ -246,6 +294,7 @@ void SceneBasic_Uniform::render()
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass1Index);
     drawScene();
     glCullFace(GL_BACK);
+    glDisable(GL_POLYGON_OFFSET_FILL);
     glFlush();
     //spitOutDepthBuffer(); // This is just used to get an image of the depth buffer
 
@@ -341,9 +390,21 @@ void SceneBasic_Uniform::render()
             fairySphere.render();
         }
     }
+    if (dustActive)
+    {
+        renderFairyDust(dustPosition);
+
+        dustTimer += particleDeltaT;
+
+        if (dustTimer > particleLifetime)
+        {
+            dustActive = false;
+        }
+    }
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
+    solidProg.use();
     solidProg.setUniform("UseFairyNoise", 0);
 
     renderText();
@@ -382,9 +443,9 @@ void SceneBasic_Uniform::drawScene()
     }
     //plane
     //prog.setUniform("Material.Kd", vec3(0.122, 0.078, 0.078));
-    prog.setUniform("Material.Kd", vec3(1.0f, 1.0f, 1.0f));
-    prog.setUniform("Material.Ks", vec3(0.02f, 0.04f, 0.02f));
-    prog.setUniform("Material.Ka", vec3(0.05f));
+    prog.setUniform("Material.Kd", vec3(0.35f, 0.42f, 0.30f));
+    prog.setUniform("Material.Ks", vec3(0.02f));
+    prog.setUniform("Material.Ka", vec3(0.20f));
     prog.setUniform("Material.Shininess", 10.0f);
     prog.setUniform("UseTexture", 0);
     model = mat4(1.0f);
@@ -647,4 +708,168 @@ void SceneBasic_Uniform::renderText()
 
     glEnable(GL_DEPTH_TEST);
 }
+
+void SceneBasic_Uniform::initParticleBuffers()
+{
+    glGenBuffers(2, posBuf);
+    glGenBuffers(2, velBuf);
+    glGenBuffers(2, ageBuf);
+
+    int vec3Size = nParticles * 3 * sizeof(GLfloat);
+
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, vec3Size, nullptr, GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, vec3Size, nullptr, GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, vec3Size, nullptr, GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, velBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, vec3Size, nullptr, GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ageBuf[0]);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(GLfloat), nullptr, GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ageBuf[1]);
+    glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(GLfloat), nullptr, GL_DYNAMIC_COPY);
+
+    std::vector<GLfloat> tempAge(nParticles);
+    float rate = particleLifetime / nParticles;
+
+    for (int i = 0; i < nParticles; i++)
+    {
+        tempAge[i] = rate * (i - nParticles);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, ageBuf[0]);
+    glBufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        nParticles * sizeof(GLfloat),
+        tempAge.data()
+    );
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenVertexArrays(2, particleArray);
+
+    for (int i = 0; i < 2; i++)
+    {
+        glBindVertexArray(particleArray[i]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, posBuf[i]);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, velBuf[i]);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, ageBuf[i]);
+        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(2);
+    }
+
+    glBindVertexArray(0);
+
+    glGenTransformFeedbacks(2, feedback);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[0]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, ageBuf[0]);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, posBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, velBuf[1]);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, ageBuf[1]);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
+}
+
+void SceneBasic_Uniform::renderFairyDust(const glm::vec3& fairyPos)
+{
+    particleProg.use();
+
+    particleProg.setUniform("Time", particleTime);
+    particleProg.setUniform("DeltaT", particleDeltaT);
+    particleProg.setUniform("Emitter", fairyPos);
+
+    mat4 mv = view * mat4(1.0f);
+    particleProg.setUniform("MV", mv);
+    particleProg.setUniform("Proj", projection);
+
+    // Update particles
+    particleProg.setUniform("Pass", 1);
+
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[drawBuf]);
+    glBeginTransformFeedback(GL_POINTS);
+
+    glBindVertexArray(particleArray[1 - drawBuf]);
+
+    glVertexAttribDivisor(0, 0);
+    glVertexAttribDivisor(1, 0);
+    glVertexAttribDivisor(2, 0);
+
+    glDrawArrays(GL_POINTS, 0, nParticles);
+
+    glBindVertexArray(0);
+
+    glEndTransformFeedback();
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
+
+    glDisable(GL_RASTERIZER_DISCARD);
+
+    // Draw particles
+    particleProg.setUniform("Pass", 2);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+    glDepthMask(GL_FALSE);
+
+    glBindVertexArray(particleArray[drawBuf]);
+
+    glVertexAttribDivisor(0, 1);
+    glVertexAttribDivisor(1, 1);
+    glVertexAttribDivisor(2, 1);
+
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, nParticles);
+
+    glBindVertexArray(0);
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+
+    drawBuf = 1 - drawBuf;
+}
+
+void SceneBasic_Uniform::resetFairyDust()
+{
+    std::vector<GLfloat> tempAge(nParticles);
+
+    for (int i = 0; i < nParticles; i++)
+    {
+        tempAge[i] = particleLifetime + 1.0f;
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, ageBuf[i]);
+        glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            nParticles * sizeof(GLfloat),
+            tempAge.data()
+        );
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+
 
