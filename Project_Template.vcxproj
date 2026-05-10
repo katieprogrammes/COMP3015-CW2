@@ -149,9 +149,11 @@
     <ClCompile Include="helper\frustum.cpp" />
     <ClCompile Include="helper\glslprogram.cpp" />
     <ClCompile Include="helper\glutils.cpp" />
+    <ClCompile Include="helper\noisetex.cpp" />
     <ClCompile Include="helper\objmesh.cpp" />
     <ClCompile Include="helper\plane.cpp" />
     <ClCompile Include="helper\skybox.cpp" />
+    <ClCompile Include="helper\sphere.cpp" />
     <ClCompile Include="helper\stb\stb_image.cpp" />
     <ClCompile Include="helper\texture.cpp" />
     <ClCompile Include="helper\trianglemesh.cpp" />
@@ -161,10 +163,6 @@
   <ItemGroup>
     <None Include="shader\basic_uniform.frag" />
     <None Include="shader\basic_uniform.vert" />
-    <None Include="shader\shadowvolume-comp.fs" />
-    <None Include="shader\shadowvolume-comp.vs" />
-    <None Include="shader\shadowvolume-render.fs" />
-    <None Include="shader\shadowvolume-render.vs" />
     <None Include="shader\solid.fs" />
     <None Include="shader\solid.vs" />
   </ItemGroup>
@@ -174,6 +172,7 @@
     <ClInclude Include="helper\frustum.h" />
     <ClInclude Include="helper\glslprogram.h" />
     <ClInclude Include="helper\glutils.h" />
+    <ClInclude Include="helper\noisetex.h" />
     <ClInclude Include="helper\objmesh.h" />
     <ClInclude Include="helper\particleutils.h" />
     <ClInclude Include="helper\plane.h" />
@@ -181,6 +180,7 @@
     <ClInclude Include="helper\scene.h" />
     <ClInclude Include="helper\scenerunner.h" />
     <ClInclude Include="helper\skybox.h" />
+    <ClInclude Include="helper\sphere.h" />
     <ClInclude Include="helper\stb\stb_image.h" />
     <ClInclude Include="helper\stb\stb_image_write.h" />
     <ClInclude Include="helper\texture.h" />

@@ -1,10 +1,15 @@
 #version 460
 
-layout (location = 0) in vec2 VertexPosition;
+layout (location = 0) in vec3 VertexPosition;
 
 uniform mat4 MVP;
 
+out vec2 TexCoord;
+
+
+
 void main()
 {
-	gl_Position = MVP*vec4(VertexPosition,0.0,1.0);
+	TexCoord = VertexPosition.xy * 0.5 + 0.5;
+	gl_Position = MVP*vec4(VertexPosition,1.0);
 }

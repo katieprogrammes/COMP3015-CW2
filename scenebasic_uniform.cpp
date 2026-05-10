@@ -15,13 +15,14 @@ using std::endl;
 #include "helper/texture.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "helper/particleutils.h"
+#include "helper/noisetex.h"
 
 using glm::vec3;
 using glm::vec4;
 using glm::mat3;
 using glm::mat4;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), plane(250.0f, 250.0f, 1, 1), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
+SceneBasic_Uniform::SceneBasic_Uniform() : tPrev(0), plane(250.0f, 250.0f, 1, 1), fairySphere(0.2f, 16, 16), angle(90.0f), rotSpeed(glm::pi<float>()/16.0f)
 {
     shadowMapWidth = 512;
     shadowMapHeight = 512;
@@ -47,6 +48,7 @@ void SceneBasic_Uniform::initScene()
 
     setupFBO();
     buildJitterTex();
+    noiseTex = NoiseTex::generatePeriodic2DTex(4.0f, 0.5f, 256, 256);
 
     GLuint programHandle = prog.getHandle();
     pass1Index = glGetSubroutineIndex(programHandle, GL_FRAGMENT_SHADER, "recordDepth");
@@ -94,6 +96,21 @@ void SceneBasic_Uniform::initScene()
         float tint = 0.6f + (rand() % 40) / 100.0f;
         treeGreenTint.push_back(tint);
     }
+    //fairy placement
+    fairyPositions = {
+    glm::vec3(0.0f, 4.0f, 3.0f),
+    glm::vec3(-6.0f, 4.0f, -6.0f),
+    glm::vec3(4.0f, 4.0f, -8.0f),
+    glm::vec3(8.0f, 4.0f, 2.0f),
+    glm::vec3(-8.0f, 4.0f, 4.0f),
+    glm::vec3(0.0f, 4.0f, -10.0f),
+    glm::vec3(10.0f, 4.0f, -4.0f),
+    glm::vec3(-10.0f, 4.0f, -2.0f),
+    glm::vec3(2.0f, 4.0f, 8.0f)
+    };
+
+    fairyCollected.resize(fairyPositions.size(), false);
+    totalFairies = static_cast<int>(fairyPositions.size());
 }
 
 void SceneBasic_Uniform::compile()
@@ -116,6 +133,9 @@ void SceneBasic_Uniform::compile()
 
 void SceneBasic_Uniform::update(float t)
 {
+    deltaTime = t - tPrev;
+    tPrev = t;
+
     //Camera
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
@@ -149,6 +169,59 @@ void SceneBasic_Uniform::update(float t)
     direction.y = sin(glm::radians(pitch));
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(direction);
+
+    float speed = 8.0f * deltaTime;
+
+    glm::vec3 forward = glm::normalize(glm::vec3(cameraFront.x, 0.0f, cameraFront.z));
+    glm::vec3 right = glm::normalize(glm::cross(forward, cameraUp));
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += forward * speed;
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= forward * speed;
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= right * speed;
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += right * speed;
+
+    //game mechanic logic
+
+    if (!gameWon)
+    {
+        for (int i = 0; i < fairyPositions.size(); i++)
+        {
+            if (!fairyCollected[i])
+            {
+                float distanceToFairy = glm::distance(cameraPos, fairyPositions[i]);
+
+                if (distanceToFairy < 1.5f)
+                {
+                    fairyCollected[i] = true;
+                    score++;
+
+                    std::cout << "Fairy collected! Score: "
+                        << score << " / " << totalFairies << std::endl;
+
+                    std::string title = "Shadow Grove - Fairies: "
+                        + std::to_string(score)
+                        + " / "
+                        + std::to_string(totalFairies);
+
+                    glfwSetWindowTitle(window, title.c_str());
+
+                    if (score >= totalFairies)
+                    {
+                        gameWon = true;
+                        std::cout << "You collected all fairies!" << std::endl;
+                        glfwSetWindowTitle(window, "Shadow Grove - All Fairies Collected!");
+                    }
+                }
+            }
+        }
+    }
 }
 
 void SceneBasic_Uniform::render()
@@ -173,9 +246,7 @@ void SceneBasic_Uniform::render()
     //spitOutDepthBuffer(); // This is just used to get an image of the depth buffer
 
     // Pass 2 (render)
-    float c = 2.0f;
-    vec3 cameraPos(c * 11.5f * cos(angle), c * 7.0f, c * 11.5f * sin(angle));
-    view = glm::lookAt(cameraPos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     prog.setUniform("Light.Position", view * vec4(lightFrustum.getOrigin(), 1.0f));
     projection = glm::perspective(glm::radians(50.0f), (float)width / height, 0.1f, 100.0f);
 
@@ -193,10 +264,69 @@ void SceneBasic_Uniform::render()
 
     // Draw the light's frustum
     solidProg.use();
+    solidProg.setUniform("UseFairyNoise", 0);
     solidProg.setUniform("Color", vec4(1.0f, 0.0f, 0.0f, 1.0f));
     mat4 mv = view * lightFrustum.getInverseViewMatrix();
     solidProg.setUniform("MVP", projection * mv);
-    lightFrustum.render();
+    //lightFrustum.render();
+
+    // Draw visible fairies
+    solidProg.use();
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, noiseTex);
+
+    solidProg.setUniform("UseFairyNoise", 1);
+    solidProg.setUniform("Time", static_cast<float>(glfwGetTime()));
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDepthMask(GL_FALSE);
+
+    for (int i = 0; i < fairyPositions.size(); i++)
+    {
+        if (!fairyCollected[i])
+        {
+            float flicker = 0.5f + 0.5f * sin(glfwGetTime() * 6.0f + i * 1.7f);
+
+            mat4 auraModel = mat4(1.0f);
+            auraModel = glm::translate(auraModel, fairyPositions[i]);
+
+            float auraScale = 1.1f + 0.4f * flicker;
+            auraModel = glm::scale(auraModel, vec3(auraScale));
+
+            solidProg.setUniform(
+                "Color",
+                vec4(
+                    0.25f,
+                    0.75f,
+                    1.0f,
+                    0.18f + flicker * 0.12f
+                )
+            );
+            solidProg.setUniform("NoiseSeed", static_cast<float>(i) * 0.17f);
+
+            mat4 auraMVP = projection * view * auraModel;
+            solidProg.setUniform("MVP", auraMVP);
+            fairySphere.render();
+
+            mat4 coreModel = mat4(1.0f);
+            coreModel = glm::translate(coreModel, fairyPositions[i]);
+
+            float coreScale = 0.7f + 0.25f * flicker;
+            coreModel = glm::scale(coreModel, vec3(coreScale));
+
+            solidProg.setUniform( "Color", vec4(0.35f, 0.75f, 1.0f, 1.0f));
+
+            mat4 coreMVP = projection * view * coreModel;
+            solidProg.setUniform("MVP", coreMVP);
+            fairySphere.render();
+        }
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    solidProg.setUniform("UseFairyNoise", 0);
 }
 
 void SceneBasic_Uniform::drawScene()
@@ -353,3 +483,5 @@ float SceneBasic_Uniform::jitter() {
     static std::uniform_real_distribution<float> distrib(-0.5f, 0.5f);
     return distrib(generator);
 }
+
+

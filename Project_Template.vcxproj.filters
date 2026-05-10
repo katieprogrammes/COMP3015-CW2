@@ -63,6 +63,12 @@
     <ClCompile Include="helper\frustum.cpp">
       <Filter>helper</Filter>
     </ClCompile>
+    <ClCompile Include="helper\sphere.cpp">
+      <Filter>helper</Filter>
+    </ClCompile>
+    <ClCompile Include="helper\noisetex.cpp">
+      <Filter>helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\basic_uniform.frag">
@@ -76,18 +82,6 @@
     </None>
     <None Include="shader\solid.vs">
       <Filter>shaders</Filter>
-    </None>
-    <None Include="shader\shadowvolume-render.vs">
-      <Filter>helper</Filter>
-    </None>
-    <None Include="shader\shadowvolume-comp.fs">
-      <Filter>helper</Filter>
-    </None>
-    <None Include="shader\shadowvolume-comp.vs">
-      <Filter>helper</Filter>
-    </None>
-    <None Include="shader\shadowvolume-render.fs">
-      <Filter>helper</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -143,6 +137,12 @@
       <Filter>helper</Filter>
     </ClInclude>
     <ClInclude Include="helper\particleutils.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\sphere.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\noisetex.h">
       <Filter>helper</Filter>
     </ClInclude>
   </ItemGroup>
