@@ -1,55 +1,112 @@
-#include "skybox.h"
+﻿#include "Skybox.h"
+#include "shader_m.h"
+#include "stb/stb_image.h"
 
-#include <glad/glad.h>
-#include <vector>
+float skyboxVertices[] = {
+    //positions of vertices         
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
 
-SkyBox::SkyBox(float size)
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
+
+Skybox::Skybox(const std::vector<std::string>& faces)
+    : shader("shaders/skybox.vs", "shaders/skybox.fs")
 {
-    float side2 = size * 0.5f;
-    std::vector<GLfloat> v = {
-        // Front
-       -side2, -side2, side2,
-        side2, -side2, side2,
-        side2,  side2, side2,
-       -side2,  side2, side2,
-       // Right
-        side2, -side2, side2,
-        side2, -side2, -side2,
-        side2,  side2, -side2,
-        side2,  side2, side2,
-       // Back
-       -side2, -side2, -side2,
-       -side2,  side2, -side2,
-        side2,  side2, -side2,
-        side2, -side2, -side2,
-       // Left
-       -side2, -side2, side2,
-       -side2,  side2, side2,
-       -side2,  side2, -side2,
-       -side2, -side2, -side2,
-       // Bottom
-       -side2, -side2, side2,
-       -side2, -side2, -side2,
-        side2, -side2, -side2,
-        side2, -side2, side2,
-       // Top
-       -side2,  side2, side2,
-        side2,  side2, side2,
-        side2,  side2, -side2,
-       -side2,  side2, -side2
-    };
+    cubemapID = loadCubemap(faces);
 
-    // We don't shade a sky box, so normals aren't used.
-    std::vector<GLfloat> n(v.size(), 0.0f);
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+}
 
-    std::vector<GLuint> el = {
-        0,2,1,0,3,2,
-        4,6,5,4,7,6,
-        8,10,9,8,11,10,
-        12,14,13,12,15,14,
-        16,18,17,16,19,18,
-        20,22,21,20,23,22
-    };
 
-    initBuffers(&el, &v, &n);
+
+
+void Skybox::Draw(const glm::mat4& view, const glm::mat4& projection)
+{
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+
+    shader.use();
+    shader.setMat4("view", glm::mat4(glm::mat3(view)));
+    shader.setMat4("projection", projection);
+
+    glBindVertexArray(VAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+}
+
+
+
+GLuint Skybox::loadCubemap(const std::vector<std::string>& faces)
+{
+    GLuint texID;
+    glGenTextures(1, &texID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return texID;
 }

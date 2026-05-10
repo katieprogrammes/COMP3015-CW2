@@ -1,13 +1,22 @@
-#ifndef SKYBOX_H
-#define SKYBOX_H
+#pragma once
+#include <vector>
+#include <string>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include "shader_m.h"
 
-#include "trianglemesh.h"
 
-class SkyBox : public TriangleMesh
+class Skybox
 {
 public:
-    SkyBox(float size = 50.0f);
+    Skybox(const std::vector<std::string>& faces);
+    void Draw(const glm::mat4& view, const glm::mat4& projection);
+
+private:
+    GLuint cubemapID;
+    GLuint VAO, VBO;
+
+    Shader shader;
+    GLuint loadCubemap(const std::vector<std::string>& faces);
 };
-
-
-#endif // SKYBOX_H

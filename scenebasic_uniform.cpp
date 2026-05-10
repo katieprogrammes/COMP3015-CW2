@@ -12,16 +12,25 @@ using std::endl;
 
 #define STB_EASY_FONT_IMPLEMENTATION
 #include "helper/stb_easy_font.h"
+#include "helper/stb/stb_image.h"
 #include "helper/glutils.h"
 #include "helper/texture.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "helper/particleutils.h"
 #include "helper/noisetex.h"
+#include "helper/skybox.h"
 
 using glm::vec3;
 using glm::vec4;
 using glm::mat3;
 using glm::mat4;
+
+
+float randomFloat(float min, float max)
+{
+    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    return min + r * (max - min);
+}
 
 SceneBasic_Uniform::SceneBasic_Uniform() : 
     tPrev(0), 
@@ -51,6 +60,8 @@ void SceneBasic_Uniform::initScene()
     
     glClearColor(0.0, 0.0, 0.1, 1.0); //setup background colour
     glEnable(GL_DEPTH_TEST);
+
+    initSkybox();
 
     initText();
 
@@ -122,18 +133,50 @@ void SceneBasic_Uniform::initScene()
         float tint = 0.6f + (rand() % 40) / 100.0f;
         treeGreenTint.push_back(tint);
     }
-    //fairy placement
-    fairyPositions = {
-    glm::vec3(0.0f, 4.0f, 3.0f),
-    glm::vec3(-6.0f, 4.0f, -6.0f),
-    glm::vec3(4.0f, 4.0f, -8.0f),
-    glm::vec3(8.0f, 4.0f, 2.0f),
-    glm::vec3(-8.0f, 4.0f, 4.0f),
-    glm::vec3(0.0f, 4.0f, -10.0f),
-    glm::vec3(10.0f, 4.0f, -4.0f),
-    glm::vec3(-10.0f, 4.0f, -2.0f),
-    glm::vec3(2.0f, 4.0f, 8.0f)
-    };
+    //Fairy placement
+    totalFairies = 9;
+
+    fairyPositions.clear();
+    fairyCollected.clear();
+    fairyOrbitCenters.clear();
+    fairyAngleOffsets.clear();
+
+    for (int i = 0; i < totalFairies; i++)
+    {
+        glm::vec3 spawnCenter;
+
+        //Random spawn aera
+        spawnCenter.x = randomFloat(-22.0f, 22.0f);
+        spawnCenter.y = 4.0f;
+        spawnCenter.z = randomFloat(-22.0f, 14.0f);
+
+        //Spawn away from player
+        glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
+        glm::vec2 playerStartXZ(cameraPos.x, cameraPos.z);
+
+        while (glm::distance(spawnXZ, playerStartXZ) < 4.0f)
+        {
+            spawnCenter.x = randomFloat(-24.0f, 24.0f);
+            spawnCenter.z = randomFloat(-24.0f, 16.0f);
+
+            spawnXZ = glm::vec2(spawnCenter.x, spawnCenter.z);
+        }
+
+        float angle = randomFloat(0.0f, glm::two_pi<float>());
+
+        fairyOrbitCenters.push_back(spawnCenter);
+        fairyAngleOffsets.push_back(angle);
+
+        glm::mat4 orbit = glm::mat4(1.0f);
+        orbit = glm::translate(orbit, spawnCenter);
+        orbit = glm::rotate(orbit, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        orbit = glm::translate(orbit, glm::vec3(fairyOrbitRadius, 0.0f, 0.0f));
+
+        glm::vec4 worldPos = orbit * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+        fairyPositions.push_back(glm::vec3(worldPos));
+        fairyCollected.push_back(false);
+    }
 
     fairyCollected.resize(fairyPositions.size(), false);
     totalFairies = static_cast<int>(fairyPositions.size());
@@ -154,6 +197,10 @@ void SceneBasic_Uniform::compile()
         uiProg.compileShader("shader/ui.vs", GLSLShader::VERTEX);
         uiProg.compileShader("shader/ui.fs", GLSLShader::FRAGMENT);
         uiProg.link();
+
+        skyboxProg.compileShader("shader/skybox.vs", GLSLShader::VERTEX);
+        skyboxProg.compileShader("shader/skybox.fs", GLSLShader::FRAGMENT);
+        skyboxProg.link();
 
         particleProg.compileShader("shader/fairy_particle.vs", GLSLShader::VERTEX);
         particleProg.compileShader("shader/fairy_particle.fs", GLSLShader::FRAGMENT);
@@ -233,6 +280,8 @@ void SceneBasic_Uniform::update(float t)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += right * speed;
 
+    updateFairyOrbits(t);
+
     //game mechanic logic
 
     if (!gameWon)
@@ -306,6 +355,9 @@ void SceneBasic_Uniform::render()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, width, height);
+
+    renderSkybox();
+    prog.use();
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthTex);
@@ -872,4 +924,197 @@ void SceneBasic_Uniform::resetFairyDust()
 }
 
 
+void SceneBasic_Uniform::updateFairyOrbits(float t)
+{
+    for (int i = 0; i < fairyPositions.size(); i++)
+    {
+        if (fairyCollected[i])
+            continue;
+
+        float angle = fairyAngleOffsets[i] + t * fairyOrbitSpeed;
+
+        float bob =
+            sin(t * fairyBobSpeed + fairyAngleOffsets[i]) *
+            fairyBobAmount;
+
+        glm::mat4 orbit = glm::mat4(1.0f);
+
+        orbit = glm::translate(orbit, fairyOrbitCenters[i]);
+        orbit = glm::rotate(orbit, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        orbit = glm::translate(orbit, glm::vec3(fairyOrbitRadius, bob, 0.0f));
+
+        glm::vec4 worldPos = orbit * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+        fairyPositions[i] = glm::vec3(worldPos);
+    }
+}
+void SceneBasic_Uniform::initSkybox()
+{
+    float skyboxVertices[] = {
+        // positions
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+        0,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        3 * sizeof(float),
+        (void*)0
+    );
+
+    glBindVertexArray(0);
+
+    std::vector<std::string> faces = {
+        "media/texture/stars1.png",
+        "media/texture/stars1.png",
+        "media/texture/stars1.png",
+        "media/texture/stars1.png",
+        "media/texture/stars1.png",
+        "media/texture/stars1.png"
+    };
+
+    skyboxTexture = loadCubemap(faces);
+
+    skyboxProg.use();
+    skyboxProg.setUniform("skybox", 0);
+}
+
+GLuint SceneBasic_Uniform::loadCubemap(const std::vector<std::string>& faces)
+{
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    stbi_set_flip_vertically_on_load(false);
+
+    int texWidth, texHeight, nrChannels;
+
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char* data = stbi_load(
+            faces[i].c_str(),
+            &texWidth,
+            &texHeight,
+            &nrChannels,
+            0
+        );
+
+        if (data)
+        {
+            GLenum format = GL_RGB;
+
+            if (nrChannels == 1)
+                format = GL_RED;
+            else if (nrChannels == 3)
+                format = GL_RGB;
+            else if (nrChannels == 4)
+                format = GL_RGBA;
+
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0,
+                format,
+                texWidth,
+                texHeight,
+                0,
+                format,
+                GL_UNSIGNED_BYTE,
+                data
+            );
+
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cerr << "Failed to load skybox texture: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}
+void SceneBasic_Uniform::renderSkybox()
+{
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+
+    glDisable(GL_CULL_FACE);
+
+    skyboxProg.use();
+
+    glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
+
+    skyboxProg.setUniform("view", skyboxView);
+    skyboxProg.setUniform("projection", projection);
+
+    glBindVertexArray(skyboxVAO);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glBindVertexArray(0);
+
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+}
 

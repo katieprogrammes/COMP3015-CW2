@@ -165,6 +165,8 @@
     <None Include="shader\basic_uniform.vert" />
     <None Include="shader\fairy_particle.fs" />
     <None Include="shader\fairy_particle.vs" />
+    <None Include="shader\skybox.fs" />
+    <None Include="shader\skybox.vs" />
     <None Include="shader\solid.fs" />
     <None Include="shader\solid.vs" />
     <None Include="shader\ui.fs" />
@@ -183,6 +185,7 @@
     <ClInclude Include="helper\random.h" />
     <ClInclude Include="helper\scene.h" />
     <ClInclude Include="helper\scenerunner.h" />
+    <ClInclude Include="helper\shader_m.h" />
     <ClInclude Include="helper\skybox.h" />
     <ClInclude Include="helper\sphere.h" />
     <ClInclude Include="helper\stb\stb_image.h" />

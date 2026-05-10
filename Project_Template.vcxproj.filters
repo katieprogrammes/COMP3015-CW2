@@ -48,9 +48,6 @@
     <ClCompile Include="helper\objmesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="helper\skybox.cpp">
-      <Filter>helper</Filter>
-    </ClCompile>
     <ClCompile Include="helper\texture.cpp">
       <Filter>helper</Filter>
     </ClCompile>
@@ -67,6 +64,9 @@
       <Filter>helper</Filter>
     </ClCompile>
     <ClCompile Include="helper\noisetex.cpp">
+      <Filter>helper</Filter>
+    </ClCompile>
+    <ClCompile Include="helper\skybox.cpp">
       <Filter>helper</Filter>
     </ClCompile>
   </ItemGroup>
@@ -93,6 +93,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shader\fairy_particle.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\skybox.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\skybox.fs">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -133,9 +139,6 @@
     <ClInclude Include="helper\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="helper\skybox.h">
-      <Filter>helper</Filter>
-    </ClInclude>
     <ClInclude Include="helper\texture.h">
       <Filter>helper</Filter>
     </ClInclude>
@@ -158,6 +161,12 @@
       <Filter>helper</Filter>
     </ClInclude>
     <ClInclude Include="helper\stb_easy_font.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\shader_m.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\skybox.h">
       <Filter>helper</Filter>
     </ClInclude>
   </ItemGroup>

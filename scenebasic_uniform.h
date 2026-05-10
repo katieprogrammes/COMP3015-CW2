@@ -28,7 +28,7 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog, solidProg, uiProg, particleProg;
+    GLSLProgram prog, solidProg, uiProg, particleProg, skyboxProg;
     GLuint shadowFBO, pass1Index, pass2Index, depthTex;
     int shadowMapWidth, shadowMapHeight;
     glm::mat4 lightPV, shadowBias;
@@ -36,6 +36,10 @@ private:
 
     GLuint textVAO = 0;
     GLuint textVBO = 0;
+
+    GLuint skyboxVAO = 0;
+    GLuint skyboxVBO = 0;
+    GLuint skyboxTexture = 0;
 
     GLuint noiseTex;
 
@@ -64,7 +68,16 @@ private:
     std::vector<float> treeGreenTint;
 
     
-    int treeCount = 40;
+    int treeCount = 120;
+
+    //fairy movement
+    std::vector<glm::vec3> fairyOrbitCenters;
+    std::vector<float> fairyAngleOffsets;
+
+    float fairyOrbitRadius = 1.2f;
+    float fairyOrbitSpeed = 1.2f;
+    float fairyBobAmount = 0.35f;
+    float fairyBobSpeed = 2.0f;
 
     //camera
     float yaw = -90.0f;
@@ -103,6 +116,13 @@ private:
     void initParticleBuffers();
     void renderFairyDust(const glm::vec3& fairyPos);
     void resetFairyDust();
+
+
+    void initSkybox();
+    GLuint loadCubemap(const std::vector<std::string>& faces);
+    void renderSkybox();
+
+    void updateFairyOrbits(float t);
 
     void initText();
     void renderText();
