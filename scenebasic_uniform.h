@@ -17,6 +17,7 @@
 #include "helper/frustum.h"
 
 #include <vector>
+#include <string>
 
 class SceneBasic_Uniform : public Scene
 {
@@ -27,11 +28,14 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog, solidProg;
+    GLSLProgram prog, solidProg, uiProg;
     GLuint shadowFBO, pass1Index, pass2Index, depthTex;
     int shadowMapWidth, shadowMapHeight;
     glm::mat4 lightPV, shadowBias;
     int currentPass = 0;
+
+    GLuint textVAO = 0;
+    GLuint textVBO = 0;
 
     GLuint noiseTex;
 
@@ -77,6 +81,10 @@ private:
     
     float jitter();
     void buildJitterTex();
+
+    void initText();
+    void renderText();
+    void drawText(const std::string& text, float x, float y, float scale, const glm::vec4& color);
 
     //game logic
     std::vector<glm::vec3> fairyPositions;

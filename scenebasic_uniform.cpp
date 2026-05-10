@@ -4,13 +4,14 @@
 #include <cstdlib>
 
 #include <sstream>
-#include <string>
 using std::string;
 
 #include <iostream>
 using std::cerr;
 using std::endl;
 
+#define STB_EASY_FONT_IMPLEMENTATION
+#include "helper/stb_easy_font.h"
 #include "helper/glutils.h"
 #include "helper/texture.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -40,6 +41,8 @@ void SceneBasic_Uniform::initScene()
     
     glClearColor(0.0, 0.0, 0.1, 1.0); //setup background colour
     glEnable(GL_DEPTH_TEST);
+
+    initText();
 
     view = glm::lookAt(vec3(0.0f, 4.0f, 6.0f), vec3(0.0f, 2.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     projection = mat4(1.0f);
@@ -72,9 +75,6 @@ void SceneBasic_Uniform::initScene()
     prog.setUniform("Light.Intensity", vec3(0.85f));
     prog.setUniform("Light.L", vec3(0.9f));
     prog.setUniform("Light.La", vec3(0.5f));
-    prog.setUniform("Fog.MaxDist", 50.0f);
-    prog.setUniform("Fog.MinDist", 5.0f);
-    prog.setUniform("Fog.Color", vec3(0.3f));
     prog.setUniform("ShadowMap", 0);
     prog.setUniform("OffsetTex", 1);
     prog.setUniform("Radius", radius / 512.0f);
@@ -124,6 +124,10 @@ void SceneBasic_Uniform::compile()
         solidProg.compileShader("shader/solid.vs", GLSLShader::VERTEX);
         solidProg.compileShader("shader/solid.fs", GLSLShader::FRAGMENT);
         solidProg.link();
+
+        uiProg.compileShader("shader/ui.vs", GLSLShader::VERTEX);
+        uiProg.compileShader("shader/ui.fs", GLSLShader::FRAGMENT);
+        uiProg.link();
 
 	} catch (GLSLProgramException &e) {
 		cerr << e.what() << endl;
@@ -260,6 +264,20 @@ void SceneBasic_Uniform::render()
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass2Index);
     currentPass = 2;
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &pass2Index);
+
+    if (gameWon)
+    {
+        prog.setUniform("Fog.MaxDist", 80.0f);
+        prog.setUniform("Fog.MinDist", 25.0f);
+        prog.setUniform("Fog.Color", vec3(0.55f, 0.75f, 0.95f));
+    }
+    else
+    {
+        prog.setUniform("Fog.MaxDist", 50.0f);
+        prog.setUniform("Fog.MinDist", 5.0f);
+        prog.setUniform("Fog.Color", vec3(0.3f));
+    }
+
     drawScene();
 
     // Draw the light's frustum
@@ -327,6 +345,8 @@ void SceneBasic_Uniform::render()
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     solidProg.setUniform("UseFairyNoise", 0);
+
+    renderText();
 }
 
 void SceneBasic_Uniform::drawScene()
@@ -484,4 +504,147 @@ float SceneBasic_Uniform::jitter() {
     return distrib(generator);
 }
 
+void SceneBasic_Uniform::initText()
+{
+    glGenVertexArrays(1, &textVAO);
+    glGenBuffers(1, &textVBO);
+
+    glBindVertexArray(textVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+
+    // stb_easy_font can generate a decent amount of vertex data.
+    glBufferData(GL_ARRAY_BUFFER, 99999, nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(float) * 2,
+        nullptr
+    );
+
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+}
+void SceneBasic_Uniform::drawText(
+    const std::string& text,
+    float x,
+    float y,
+    float scale,
+    const glm::vec4& color
+)
+{
+    char buffer[99999];
+
+    int numQuads = stb_easy_font_print(
+        x,
+        y,
+        const_cast<char*>(text.c_str()),
+        nullptr,
+        buffer,
+        sizeof(buffer)
+    );
+
+    std::vector<glm::vec2> vertices;
+    vertices.reserve(numQuads * 6);
+
+    struct StbVertex
+    {
+        float x, y, z;
+        unsigned char color[4];
+    };
+
+    StbVertex* stbVerts = reinterpret_cast<StbVertex*>(buffer);
+
+    for (int i = 0; i < numQuads; i++)
+    {
+        StbVertex& v0 = stbVerts[i * 4 + 0];
+        StbVertex& v1 = stbVerts[i * 4 + 1];
+        StbVertex& v2 = stbVerts[i * 4 + 2];
+        StbVertex& v3 = stbVerts[i * 4 + 3];
+
+        auto convert = [&](StbVertex& v)
+            {
+                return glm::vec2(
+                    x + (v.x - x) * scale,
+                    y + (v.y - y) * scale
+                );
+            };
+
+        glm::vec2 p0 = convert(v0);
+        glm::vec2 p1 = convert(v1);
+        glm::vec2 p2 = convert(v2);
+        glm::vec2 p3 = convert(v3);
+
+        vertices.push_back(p0);
+        vertices.push_back(p1);
+        vertices.push_back(p2);
+
+        vertices.push_back(p0);
+        vertices.push_back(p2);
+        vertices.push_back(p3);
+    }
+
+    if (vertices.empty())
+        return;
+
+    uiProg.use();
+
+    glm::mat4 projectionMatrix = glm::ortho(
+        0.0f,
+        static_cast<float>(width),
+        static_cast<float>(height),
+        0.0f,
+        -1.0f,
+        1.0f
+    );
+
+    uiProg.setUniform("projection", projectionMatrix);
+    uiProg.setUniform("textColor", color);
+
+    glBindVertexArray(textVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        vertices.size() * sizeof(glm::vec2),
+        vertices.data(),
+        GL_DYNAMIC_DRAW
+    );
+
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
+
+    glBindVertexArray(0);
+}
+void SceneBasic_Uniform::renderText()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, width, height);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    std::string scoreText =
+        "Fairies: "
+        + std::to_string(score)
+        + " / "
+        + std::to_string(totalFairies);
+
+    drawText(scoreText, 20.0f, 30.0f, 2.0f, glm::vec4(0.75f, 0.95f, 1.0f, 1.0f));
+
+    if (gameWon)
+    {
+        drawText("The grove is restored", 20.0f, 65.0f, 2.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
+    }
+
+    glDisable(GL_BLEND);
+
+    glEnable(GL_DEPTH_TEST);
+}
 

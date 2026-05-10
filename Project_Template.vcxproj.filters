@@ -83,6 +83,12 @@
     <None Include="shader\solid.vs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shader\ui.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\ui.fs">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper\scene.h">
@@ -143,6 +149,9 @@
       <Filter>helper</Filter>
     </ClInclude>
     <ClInclude Include="helper\noisetex.h">
+      <Filter>helper</Filter>
+    </ClInclude>
+    <ClInclude Include="helper\stb_easy_font.h">
       <Filter>helper</Filter>
     </ClInclude>
   </ItemGroup>
