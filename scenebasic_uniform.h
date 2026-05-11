@@ -42,6 +42,7 @@ private:
     GLuint skyboxTexture = 0;
 
     GLuint noiseTex;
+    GLuint treeTex = 0;
 
     glm::mat4 rotationMatrix;
 

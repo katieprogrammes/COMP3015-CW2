@@ -80,11 +80,14 @@ void SceneBasic_Uniform::initScene()
 
     glEnable(GL_BLEND);
 
-    glActiveTexture(GL_TEXTURE3);
-    Texture::loadTexture("media/texture/bluewater.png");
-
     glActiveTexture(GL_TEXTURE4);
     ParticleUtils::createRandomTex1D(nParticles * 3);
+
+    glActiveTexture(GL_TEXTURE5);
+    treeTex = Texture::loadTexture("media/texture/LindenBranch.png");
+
+    
+    glBindTexture(GL_TEXTURE_2D, treeTex);
 
     initParticleBuffers();
 
@@ -118,6 +121,7 @@ void SceneBasic_Uniform::initScene()
     prog.setUniform("Light.La", vec3(0.5f));
     prog.setUniform("ShadowMap", 0);
     prog.setUniform("OffsetTex", 1);
+    prog.setUniform("DiffuseTex", 5);
     prog.setUniform("Radius", radius / 512.0f);
     prog.setUniform("OffsetTexSize", vec3(jitterMapSize, jitterMapSize, samplesU * samplesV / 2.0f));
 
@@ -609,13 +613,16 @@ void SceneBasic_Uniform::drawScene()
     }
 
     //trees
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, treeTex);
+
     for (int i = 0; i < treeCount; i++) {
 
-        prog.setUniform("Material.Kd", vec3(0.05f, 0.35f, 0.05f));
+        prog.setUniform("Material.Kd", vec3(1.0f));
         prog.setUniform("Material.Ks", vec3(0.2f));
         prog.setUniform("Material.Ka", vec3(0.05f));
         prog.setUniform("Material.Shininess", 50.0f);
-        prog.setUniform("UseTexture", 0);
+        prog.setUniform("UseTexture", 1);
 
         model = mat4(1.0f);
 
@@ -636,6 +643,7 @@ void SceneBasic_Uniform::drawScene()
     }
 
     //shrubs
+    prog.setUniform("UseTexture", 0);
     for (int i = 0; i < shrubPositions.size(); i++)
     {
         float tint = shrubGreenTint[i];
