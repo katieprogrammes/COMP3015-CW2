@@ -4,6 +4,9 @@ Shadow Grove is an interactive OpenGL forest scene built from the Project Templa
 The player explores a dark magical grove that has been attacked by corrupted red fairies. They collect blue fairies to save them while avoiding the red fairies to restore the forest. The scene uses several GLSL shader techniques from the module, including shadow mapping, bloom post-processing, procedural noise, particle animation, skybox rendering, textured terrain, and fog-style atmospheric blending. The aim of the project was to combine graphics programming techniques into a cohesive game-like scene.
 
 ## Dependencies
+This project uses the COMP3015 OpenGL template and helper files provided during the module labs aside from shader_m.h and camera.h which were taken from learnopenGL to support the skybox and camera movement. It also includes:
+- OpenGL 4.6 / GLSL
+- GLFW / GLAD / GLM as provided by the COMP3015 template
 
 ## How To Compile
 You can clone from github into Visual Studio then open the .sln (solution) file and you can then either run through the Debug or Release configuration (x64 version).
