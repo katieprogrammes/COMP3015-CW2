@@ -44,11 +44,13 @@ void main()
         else
     {
         //Good Fairy
-        vec3 fairyDeepBlue = vec3(0.02, 0.32, 0.85);
-        vec3 fairyCyan = vec3(0.05, 0.95, 1.0);
+        vec3 fairyBlue = vec3(0.00, 0.08, 0.55);
+        vec3 fairyCyan = vec3(0.05, 1.0, 1.0);
 
-        finalColor.rgb = mix(fairyDeepBlue, fairyCyan, t);
-        finalColor.rgb *= 0.65 + t * 0.55;
+        float shimmer = smoothstep(0.25, 0.95, t);
+
+        finalColor.rgb = mix(fairyBlue, fairyCyan, shimmer);
+        finalColor.rgb *= 0.75 + shimmer * 0.85;
     }
 }
 

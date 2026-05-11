@@ -619,9 +619,9 @@ void SceneBasic_Uniform::render()
     else if (corruptionTimer > 0.0f)
     {
         //corrupt state
-        prog.setUniform("Fog.MaxDist", 16.0f);
-        prog.setUniform("Fog.MinDist", 1.0f);
-        prog.setUniform("Fog.Color", vec3(0.03f, 0.0f, 0.04f));
+        prog.setUniform("Fog.MaxDist", 12.0f);
+        prog.setUniform("Fog.MinDist", 0.5f);
+        prog.setUniform("Fog.Color", vec3(0.015f, 0.0f, 0.025f));
     }
     else
     {
@@ -819,15 +819,11 @@ void SceneBasic_Uniform::drawScene()
     {
         float tint = shrubGreenTint[i];
 
-        prog.setUniform("Material.Kd", vec3(
-            0.04f * tint,
-            0.22f * tint,
-            0.05f * tint
-        ));
+        prog.setUniform("Material.Kd", vec3(0.02f * tint, 0.12f * tint, 0.32f * tint));
 
-        prog.setUniform("Material.Ks", vec3(0.02f));
-        prog.setUniform("Material.Ka", vec3(0.08f));
-        prog.setUniform("Material.Shininess", 8.0f);
+        prog.setUniform("Material.Ks", vec3(0.06f));
+        prog.setUniform("Material.Ka", vec3(0.01f * tint, 0.05f * tint, 0.18f * tint));
+        prog.setUniform("Material.Shininess", 18.0f);
         prog.setUniform("UseTexture", 0);
 
         model = mat4(1.0f);
@@ -1112,8 +1108,8 @@ void SceneBasic_Uniform::renderText()
 
     drawText(scoreText, 20.0f, 30.0f, 3.0f, glm::vec4(0.75f, 0.95f, 1.0f, 1.0f));
 
-    drawText("Collect Blue Fairies", 560.0f, 30.0f, 2.0f, glm::vec4(0.0, 0.435, 1.0, 1.0));
-    drawText("Avoid Red Fairies", 560.0f, 50.0f, 2.0f, glm::vec4(1.0, 0.0, 0.0, 1.0));
+    drawText("Collect Blue Fairies", 580.0f, 30.0f, 2.0f, glm::vec4(0.0, 0.435, 1.0, 1.0));
+    drawText("Avoid Red Fairies", 580.0f, 50.0f, 2.0f, glm::vec4(1.0, 0.0, 0.0, 1.0));
 
     if (corruptionTimer > 0.0f && !gameWon)
     {
