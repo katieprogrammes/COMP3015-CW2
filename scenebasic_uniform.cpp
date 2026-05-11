@@ -44,8 +44,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     particleTime(0.0f),
     particleDeltaT(0.0f)
 {
-    shadowMapWidth = 512;
-    shadowMapHeight = 512;
+    shadowMapWidth = 1024;
+    shadowMapHeight = 1024;
 
     samplesU = 4;
     samplesV = 8;
@@ -119,9 +119,10 @@ void SceneBasic_Uniform::initScene()
 
     );
 
-    vec3 lightPos = vec3(0.0f, 30.0f, 30.0f);
-    lightFrustum.orient(lightPos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
-    lightFrustum.setPerspective(60.0f, 1.0f, 1.0f, 300.0f);
+    vec3 lightPos = vec3(0.0f, 55.0f, 20.0f);
+    vec3 lightTarget = vec3(0.0f, 0.0f, 18.0f);
+    lightFrustum.orient(lightPos, lightTarget, vec3(0.0f, 1.0f, 0.0f));
+    lightFrustum.setPerspective(70.0f, 1.0f, 1.0f, 140.0f);
 
     lightPV = shadowBias * lightFrustum.getProjectionMatrix() * lightFrustum.getViewMatrix();
 
@@ -619,9 +620,9 @@ void SceneBasic_Uniform::render()
     else if (corruptionTimer > 0.0f)
     {
         //corrupt state
-        prog.setUniform("Fog.MaxDist", 12.0f);
-        prog.setUniform("Fog.MinDist", 0.5f);
-        prog.setUniform("Fog.Color", vec3(0.015f, 0.0f, 0.025f));
+        prog.setUniform("Fog.MaxDist", 8.0f);
+        prog.setUniform("Fog.MinDist", 0.2f);
+        prog.setUniform("Fog.Color", vec3(0.005f, 0.0f, 0.012f));
     }
     else
     {
@@ -787,7 +788,7 @@ void SceneBasic_Uniform::drawScene()
 
         float tint = treeGreenTint[i];
 
-        prog.setUniform("Material.Kd", vec3(0.03, 0.10, 0.45));
+        prog.setUniform("Material.Kd", vec3(0.004, 0.0, 0.349));
         prog.setUniform("Material.Ks", vec3(0.03f));
         prog.setUniform("Material.Ka", vec3(0.02f,0.07f,0.28f));
         prog.setUniform("Material.Shininess", 8.0f);
@@ -1118,7 +1119,7 @@ void SceneBasic_Uniform::renderText()
 
     if (gameWon)
     {
-        drawText("The Grove is Restored!", 220.0f, 80.0f, 4.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
+        drawText("The Grove is Restored!", 175.0f, 80.0f, 4.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
     }
 
     glDisable(GL_BLEND);

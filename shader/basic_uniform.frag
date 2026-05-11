@@ -101,8 +101,10 @@ void shadeWithShadow()
 		    }
 	    }
 
-
-    shadow = pow(shadow, 3.0); //Makes shadow stronger
+    //Makes shadow stronger
+    shadow = pow(shadow, 3.0);
+    shadow *= 0.65;
+    shadow = clamp(shadow, 0.0, 1.0); 
 
     //Applying shadow to relevant areas
     vec3 ambient = baseColor * Light.La * Material.Ka;
