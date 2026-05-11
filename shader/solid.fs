@@ -8,6 +8,7 @@ uniform vec4 Color;
 
 layout(binding = 2) uniform sampler2D NoiseTex;
 uniform int UseFairyNoise = 0;
+uniform int FairyType = 0;
 uniform float Time = 0.0;
 uniform float NoiseSeed = 0.0;
 
@@ -26,13 +27,30 @@ void main()
 
         float t = (cos(noise.g * PI) + 1.0) / 2.0;
 
-        vec3 fairyBlue = vec3(0.25, 0.75, 1.0);
-        vec3 fairyWhite = vec3(0.85, 0.98, 1.0);
+        //Evil Fairy
+        if (FairyType == 2)
+    {
+        vec3 evilBlack = vec3(0.0, 0.0, 0.0);
+        vec3 evilRed = vec3(1.0, 0.02, 0.10);
+        vec3 evilPurple = vec3(0.35, 0.0, 0.45);
 
-        finalColor.rgb = mix(fairyBlue, fairyWhite, t);
-        finalColor.rgb *= 0.85 + t * 0.45;
-        //finalColor.rgb *= 0.65 + t * 0.85; //more intense option
+        vec3 corrupted = mix(evilBlack, evilPurple, t);
+        corrupted = mix(corrupted, evilRed, smoothstep(0.65, 1.0, t));
+
+        finalColor.rgb = corrupted;
+        finalColor.rgb *= 0.75 + t * 0.65;
     }
+
+        else
+    {
+        //Good Fairy
+        vec3 fairyDeepBlue = vec3(0.02, 0.32, 0.85);
+        vec3 fairyCyan = vec3(0.05, 0.95, 1.0);
+
+        finalColor.rgb = mix(fairyDeepBlue, fairyCyan, t);
+        finalColor.rgb *= 0.65 + t * 0.55;
+    }
+}
 
     FragColor = finalColor;
 }

@@ -39,8 +39,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     angle(90.0f), 
     rotSpeed(glm::pi<float>()/16.0f), 
     drawBuf(1), 
-    nParticles(55),
-    particleLifetime(3.5f),
+    nParticles(100),
+    particleLifetime(7.0f),
     particleTime(0.0f),
     particleDeltaT(0.0f)
 {
@@ -272,12 +272,20 @@ void SceneBasic_Uniform::compile()
         skyboxProg.compileShader("shader/skybox.fs", GLSLShader::FRAGMENT);
         skyboxProg.link();
 
-        particleProg.compileShader("shader/fairy_particle.vs", GLSLShader::VERTEX);
-        particleProg.compileShader("shader/fairy_particle.fs", GLSLShader::FRAGMENT);
-
         postProg.compileShader("shader/post.vs", GLSLShader::VERTEX);
         postProg.compileShader("shader/post.fs", GLSLShader::FRAGMENT);
         postProg.link();
+
+        brightProg.compileShader("shader/post.vs", GLSLShader::VERTEX);
+        brightProg.compileShader("shader/bright.fs", GLSLShader::FRAGMENT);
+        brightProg.link();
+
+        blurProg.compileShader("shader/post.vs", GLSLShader::VERTEX);
+        blurProg.compileShader("shader/blur.fs", GLSLShader::FRAGMENT);
+        blurProg.link();
+
+        particleProg.compileShader("shader/fairy_particle.vs", GLSLShader::VERTEX);
+        particleProg.compileShader("shader/fairy_particle.fs", GLSLShader::FRAGMENT);
 
         GLuint particleHandle = particleProg.getHandle();
         const char* outputNames[] = { "Position", "Velocity", "Age" };
@@ -494,6 +502,7 @@ void SceneBasic_Uniform::render()
 
     solidProg.setUniform("UseFairyNoise", 1);
     solidProg.setUniform("Time", static_cast<float>(glfwGetTime()));
+    solidProg.setUniform("FairyType", 1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -512,14 +521,7 @@ void SceneBasic_Uniform::render()
             auraModel = glm::scale(auraModel, vec3(auraScale));
 
             solidProg.setUniform(
-                "Color",
-                vec4(
-                    0.25f,
-                    0.75f,
-                    1.0f,
-                    0.18f + flicker * 0.12f
-                )
-            );
+                "Color",vec4(0.05f, 0.75f,1.0f,0.18f + flicker * 0.12f));
             solidProg.setUniform("NoiseSeed", static_cast<float>(i) * 0.17f);
 
             mat4 auraMVP = projection * view * auraModel;
@@ -532,7 +534,7 @@ void SceneBasic_Uniform::render()
             float coreScale = 0.7f + 0.25f * flicker;
             coreModel = glm::scale(coreModel, vec3(coreScale));
 
-            solidProg.setUniform( "Color", vec4(0.35f, 0.75f, 1.0f, 1.0f));
+            solidProg.setUniform("Color", vec4(0.05f, 0.85f, 1.0f, 1.0f));
 
             mat4 coreMVP = projection * view * coreModel;
             solidProg.setUniform("MVP", coreMVP);
@@ -543,43 +545,30 @@ void SceneBasic_Uniform::render()
     // Draw corrupted red fairies
     if (!gameWon)
     {
-        solidProg.setUniform("UseFairyNoise", 0);
+        solidProg.setUniform("UseFairyNoise", 1);
+        solidProg.setUniform("FairyType", 2);
+        solidProg.setUniform("Time", static_cast<float>(glfwGetTime()));
 
         for (int i = 0; i < evilFairyPositions.size(); i++)
         {
             float flicker = 0.5f + 0.5f * sin(glfwGetTime() * 7.0f + i * 1.9f);
 
+            solidProg.setUniform("NoiseSeed", static_cast<float>(i) * 0.31f + 8.0f);
 
             mat4 evilAuraModel = mat4(1.0f);
             evilAuraModel = glm::translate(evilAuraModel, evilFairyPositions[i]);
             evilAuraModel = glm::scale(evilAuraModel, vec3(1.4f + 0.5f * flicker));
 
-            solidProg.setUniform(
-                "Color",
-                vec4(
-                    1.0f,
-                    0.05f,
-                    0.25f,
-                    0.28f + 0.2f * flicker
-                )
-            );
+            solidProg.setUniform("Color",vec4(0.45f,0.0f,0.08f,0.30f + 0.22f * flicker));
 
             solidProg.setUniform("MVP", projection * view * evilAuraModel);
             fairySphere.render();
 
             mat4 evilCoreModel = mat4(1.0f);
             evilCoreModel = glm::translate(evilCoreModel, evilFairyPositions[i]);
-            evilCoreModel = glm::scale(evilCoreModel, vec3(0.35f + 0.12f * flicker));
+            evilCoreModel = glm::scale(evilCoreModel, vec3(0.7f + 0.25f * flicker));
 
-            solidProg.setUniform(
-                "Color",
-                vec4(
-                    1.0f,
-                    0.0f,
-                    0.08f,
-                    1.0f
-                )
-            );
+            solidProg.setUniform("Color", vec4(1.0f, 0.0f, 0.08f,1.0f));
 
             solidProg.setUniform("MVP", projection * view * evilCoreModel);
             fairySphere.render();
@@ -590,6 +579,7 @@ void SceneBasic_Uniform::render()
     glDisable(GL_BLEND);
     solidProg.use();
     solidProg.setUniform("UseFairyNoise", 0);
+    solidProg.setUniform("FairyType", 0);
 
     if (dustActive)
     {
@@ -603,7 +593,10 @@ void SceneBasic_Uniform::render()
             dustActive = false;
         }
     }
-    //Draw Scene texture
+    //Create bloom textures
+    renderBrightPass();
+    renderBlurPass();
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, width, height);
@@ -612,13 +605,19 @@ void SceneBasic_Uniform::render()
     glDisable(GL_CULL_FACE);
 
     postProg.use();
+    postProg.setUniform("BloomStrength", 0.3f);
+    postProg.setUniform("Exposure", 1.0f);
 
     glActiveTexture(GL_TEXTURE6);
     glBindTexture(GL_TEXTURE_2D, sceneTex);
 
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_2D, blurTex[1]);
+
     renderFullScreenQuad();
 
     glEnable(GL_DEPTH_TEST);
+
     renderText();
 }
 
@@ -1427,14 +1426,13 @@ void SceneBasic_Uniform::setupPostProcessing()
 
     glBindVertexArray(0);
 
-    // Scene framebuffer
+    //Scene framebuffer
     glGenFramebuffers(1, &sceneFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
 
     glGenTextures(1, &sceneTex);
     glBindTexture(GL_TEXTURE_2D, sceneTex);
 
-    // Use RGB16F so it can later support HDR/bloom-style bright values.
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -1458,7 +1456,7 @@ void SceneBasic_Uniform::setupPostProcessing()
         0
     );
 
-    // Depth buffer for normal 3D depth testing
+    //Depth buffer for normal 3D depth testing
     glGenRenderbuffers(1, &sceneDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, sceneDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
@@ -1481,10 +1479,115 @@ void SceneBasic_Uniform::setupPostProcessing()
 
     postProg.use();
     postProg.setUniform("SceneTex", 6);
+    postProg.setUniform("BloomTex", 7);
+    postProg.setUniform("BloomStrength", 0.3f);
+    postProg.setUniform("Exposure", 1.0f);
+
+    brightProg.use();
+    brightProg.setUniform("SceneTex", 6);
+    brightProg.setUniform("Threshold", bloomThreshold);
+
+    blurProg.use();
+    blurProg.setUniform("ImageTex", 6);
+
+    //bright framebuffer for bloom
+    glGenFramebuffers(1, &brightFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, brightFBO);
+
+    glGenTextures(1, &brightTex);
+    glBindTexture(GL_TEXTURE_2D, brightTex);
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGB16F,
+        width / 2,
+        height / 2,
+        0,
+        GL_RGB,
+        GL_FLOAT,
+        nullptr
+    );
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        brightTex,
+        0
+    );
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Bright-pass framebuffer is not complete." << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    brightProg.use();
+    brightProg.setUniform("SceneTex", 6);
+    brightProg.setUniform("Threshold", bloomThreshold);
 }
+void SceneBasic_Uniform::renderBlurPass()
+{
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    blurProg.use();
+
+    glViewport(0, 0, width / 2, height / 2);
+
+    // Pass 1: horizontal blur
+    glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[0]);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    blurProg.setUniform("Horizontal", 1);
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, brightTex);
+
+    renderFullScreenQuad();
+
+    // Pass 2: vertical blur
+    glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[1]);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    blurProg.setUniform("Horizontal", 0);
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, blurTex[0]);
+
+    renderFullScreenQuad();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void SceneBasic_Uniform::renderFullScreenQuad()
 {
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+}
+void SceneBasic_Uniform::renderBrightPass()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, brightFBO);
+    glViewport(0, 0, width / 2, height / 2);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    brightProg.use();
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, sceneTex);
+
+    brightProg.setUniform("Threshold", bloomThreshold);
+
+    renderFullScreenQuad();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

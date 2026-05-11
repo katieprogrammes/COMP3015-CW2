@@ -28,7 +28,7 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog, solidProg, uiProg, particleProg, skyboxProg, postProg;
+    GLSLProgram prog, solidProg, uiProg, particleProg, skyboxProg, postProg, brightProg, blurProg;
     GLuint shadowFBO, pass1Index, pass2Index, depthTex;
     int shadowMapWidth, shadowMapHeight;
     glm::mat4 lightPV, shadowBias;
@@ -66,6 +66,17 @@ private:
 
     GLuint quadVAO = 0;
     GLuint quadVBO = 0;
+
+    GLuint brightFBO = 0;
+    GLuint brightTex = 0;
+
+    GLuint blurFBO[2] = { 0, 0 };
+    GLuint blurTex[2] = { 0, 0 };
+
+    float bloomThreshold = 0.75f;
+
+    void renderBrightPass();
+    void renderBlurPass();
 
 
     //objects

@@ -107,6 +107,15 @@
     <None Include="shader\post.fs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shader\bright.fs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\bright.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\blur.fs">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper\scene.h">

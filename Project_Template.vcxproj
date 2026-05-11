@@ -163,6 +163,9 @@
   <ItemGroup>
     <None Include="shader\basic_uniform.frag" />
     <None Include="shader\basic_uniform.vert" />
+    <None Include="shader\blur.fs" />
+    <None Include="shader\bright.fs" />
+    <None Include="shader\bright.vs" />
     <None Include="shader\fairy_particle.fs" />
     <None Include="shader\fairy_particle.vs" />
     <None Include="shader\post.fs" />

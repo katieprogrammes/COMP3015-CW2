@@ -20,7 +20,7 @@ void main()
         discard;
     }
 
-    vec3 fairyBlue = vec3(0.45, 0.85, 1.0);
+    vec3 fairyBlue = vec3(0.0, 0.067, 1.0);
     vec3 fairyWhite = vec3(0.95, 1.0, 1.0);
 
     vec3 colour = mix(fairyBlue, fairyWhite, core);
