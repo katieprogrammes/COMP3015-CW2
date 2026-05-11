@@ -43,6 +43,7 @@ private:
 
     GLuint noiseTex;
     GLuint treeTex = 0;
+    GLuint groundTex = 0;
 
     glm::mat4 rotationMatrix;
 

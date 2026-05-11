@@ -14,6 +14,9 @@ uniform float Radius;
 uniform vec3 OffsetTexSize; //(width, height depth)
 
 uniform int UseTexture;
+uniform bool UseFog;
+
+uniform float TextureScale = 1.0;
 
 uniform struct LightInfo{
     vec4 Position;
@@ -59,7 +62,7 @@ void shadeWithShadow()
     //Base colour
     vec3 baseColor;
     if (UseTexture == 1) {
-        vec2 uv = clamp(TexCoord, 0.001, 0.999);
+        vec2 uv = TexCoord * TextureScale;
         baseColor = texture(DiffuseTex, uv).rgb;
     } else {
         baseColor = Material.Kd;
@@ -111,12 +114,16 @@ void shadeWithShadow()
     lit += vec3(1.0) * pow(rim, 3.0) * 0.1;
 
     //Fog
-    float dist = abs(Position.z);
-    float fogFactor = clamp((Fog.MaxDist - dist) / (Fog.MaxDist - Fog.MinDist), 0.0, 1.0);
-    vec3 finalColor = mix(Fog.Color, lit, fogFactor);
+    vec3 finalColor = lit;
 
-    FragColor = vec4(finalColor, 1.0);
-    //FragColor = vec4(lit, 1.0);
+    if (UseFog)
+    {
+        float dist = abs(Position.z);
+        float fogFactor = clamp((Fog.MaxDist - dist) / (Fog.MaxDist - Fog.MinDist), 0.0, 1.0);
+        finalColor = mix(Fog.Color, lit, fogFactor);
+    }
+
+FragColor = vec4(finalColor, 1.0);
 }
 
 subroutine (RenderPassType)

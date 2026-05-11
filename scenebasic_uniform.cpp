@@ -55,7 +55,7 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
 
     shrubMeshes.push_back(ObjMesh::load("media/shrub1.obj", true));
     shrubMeshes.push_back(ObjMesh::load("media/shrub2.obj", true));
-    //shrubMeshes.push_back(ObjMesh::load("media/shrub3.obj", true));
+    //shrubMeshes.push_back(ObjMesh::load("media/forestfloor.obj", true));
 }
 
 void SceneBasic_Uniform::initScene()
@@ -85,9 +85,14 @@ void SceneBasic_Uniform::initScene()
 
     glActiveTexture(GL_TEXTURE5);
     treeTex = Texture::loadTexture("media/texture/LindenBranch.png");
-
-    
     glBindTexture(GL_TEXTURE_2D, treeTex);
+
+    groundTex = Texture::loadTexture("media/texture/forestFloor.png");
+    glBindTexture(GL_TEXTURE_2D, groundTex);
+
+    //Making sure texture can repeat
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     initParticleBuffers();
 
@@ -154,7 +159,7 @@ void SceneBasic_Uniform::initScene()
         if (glm::distance(shrubXZ, playerXZ) < 4.0f)
             continue;
 
-        shrubPositions.push_back(glm::vec3(x, 0.5f, z));
+        shrubPositions.push_back(glm::vec3(x, 1.0f, z));
         shrubScales.push_back(randomFloat(3.0f, 5.0f));
         shrubRotations.push_back(randomFloat(0.0f, 360.0f));
 
@@ -628,6 +633,8 @@ void SceneBasic_Uniform::drawScene()
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         vec4 lightPos = vec4(10.0f * cos(angle), 10.0f, 10.0f * sin(angle), 1.0f);
         prog.setUniform("Light.Position", vec4(view * lightPos));
+
+        prog.setUniform("UseFog", true);
     }
 
     //trees
@@ -641,6 +648,7 @@ void SceneBasic_Uniform::drawScene()
         prog.setUniform("Material.Ka", vec3(0.02f));
         prog.setUniform("Material.Shininess", 15.0f);
         prog.setUniform("UseTexture", 1);
+        prog.setUniform("TextureScale", 1.0f);
 
         model = mat4(1.0f);
 
@@ -662,6 +670,8 @@ void SceneBasic_Uniform::drawScene()
 
     //shrubs
     prog.setUniform("UseTexture", 0);
+    prog.setUniform("UseFog", false);
+
     for (int i = 0; i < shrubPositions.size(); i++)
     {
         float tint = shrubGreenTint[i];
@@ -690,14 +700,23 @@ void SceneBasic_Uniform::drawScene()
         shrubMeshes[shrubMeshIndex[i]]->render();
     }
     //plane
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, groundTex);
+
+    prog.setUniform("UseFog", true);
     prog.setUniform("Material.Kd", vec3(0.35f, 0.42f, 0.30f));
     prog.setUniform("Material.Ks", vec3(0.02f));
-    prog.setUniform("Material.Ka", vec3(0.20f));
+    prog.setUniform("Material.Ka", vec3(0.15f));
     prog.setUniform("Material.Shininess", 10.0f);
-    prog.setUniform("UseTexture", 0);
+    prog.setUniform("UseTexture", 1);
+    prog.setUniform("TextureScale", 40.0f);
+
     model = mat4(1.0f);
     setMatrices();
     plane.render();
+
+    prog.setUniform("UseTexture", 0);
+    prog.setUniform("TextureScale", 1.0f);
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
@@ -955,13 +974,7 @@ void SceneBasic_Uniform::renderText()
 
     if (corruptionTimer > 0.0f && !gameWon)
     {
-        drawText(
-            "Corruption!",
-            20.0f,
-            65.0f,
-            2.0f,
-            glm::vec4(1.0f, 0.2f, 0.45f, 1.0f)
-        );
+        drawText("Corruption!", 285.0f, 60.0f, 2.0f,glm::vec4(1.0f, 0.2f, 0.45f, 1.0f));
     }
 
     if (gameWon)
