@@ -46,7 +46,23 @@ Shadow logic in the fragment shader:
 <img width="383" height="443" alt="image" src="https://github.com/user-attachments/assets/b9c7f37f-5486-4568-a6e3-3326161fbcc6" />
 
 ### 2. Bloom Post-Processing
+
+(EXAMPLE PICTURE)
+
 Bloom is implemented as a multi-pass post-processing effect. The scene is rendered to a texture, bright areas are extracted, blurred, and then layered back over the final image.
+
+Scene Framebuffer:
+<img width="371" height="283" alt="image" src="https://github.com/user-attachments/assets/dec275cf-66cc-4eda-af6f-ede8e1914de8" />
+
+Brightness Framebuffer:
+<img width="374" height="225" alt="image" src="https://github.com/user-attachments/assets/96eba648-9ed6-4e41-b688-066c01fe2982" />
+
+Blur Framebuffer:
+<img width="370" height="257" alt="image" src="https://github.com/user-attachments/assets/59430faa-0e19-44df-8a77-bad991d29f54" />
+
+Brightness Extraction:
+<img width="302" height="244" alt="image" src="https://github.com/user-attachments/assets/8a1cf564-1799-4143-b57d-da34094b29b5" />
+
 
 
 
