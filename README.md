@@ -8,7 +8,7 @@ The player explores a dark magical grove that has been attacked by corrupted red
 ## How To Compile
 You can clone from github into Visual Studio then open the .sln (solution) file and you can then either run through the Debug or Release configuration (x64 version).
 
-The .exe file provided in Release/x64 should run without any additional setup.
+Alternatively, the .exe file provided in Release/x64 should run without any additional setup.
 
 ## Controls
 Mouse - Look Around
