@@ -150,10 +150,17 @@ xcopy /Y /D "$(ProjectDir)shaders" "$(OutDir)shaders" /E /I</Command>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(OutDir)media"
-xcopy /Y /D "$(ProjectDir)media" "$(OutDir)media" /E /I
-mkdir "$(OutDir)shaders"
-xcopy /Y /D "$(ProjectDir)shaders" "$(OutDir)shaders" /E /I</Command>
+      <Command>if not exist "$(OutDir)shader" mkdir "$(OutDir)shader"
+
+xcopy "$(ProjectDir)shader\*" "$(OutDir)shader\" /E /I /Y /D
+
+if not exist "$(OutDir)media" mkdir "$(OutDir)media"
+
+xcopy "$(ProjectDir)media\*" "$(OutDir)media\" /E /I /Y /D
+
+if not exist "$(OutDir)helper" mkdir "$(OutDir)helper"
+
+xcopy "$(ProjectDir)helper\*" "$(OutDir)helper\" /E /I /Y /D</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

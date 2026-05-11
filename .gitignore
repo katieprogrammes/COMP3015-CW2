@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 !/media/*.obj
+!/x64/Release/*
