@@ -142,17 +142,18 @@ private:
     std::vector<glm::vec3> evilFairyOrbitCenters;
     std::vector<float> evilFairyAngleOffsets;
 
-    int totalEvilFairies = 5;
-
-    float corruptionTimer = 0.0f;
-    float corruptionDuration = 2.0f;
+    
 
     void updateEvilFairyOrbits(float t);
     void checkEvilFairyCollision();
 
     int score = 0;
-    int totalFairies = 8;
+    int totalFairies = 12;
+    int totalEvilFairies = 6;
     bool gameWon = false;
+
+    float corruptionTimer = 0.0f;
+    float corruptionDuration = 2.75f;
 
     void setMatrices();
     void compile();
