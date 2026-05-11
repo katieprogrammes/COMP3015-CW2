@@ -39,8 +39,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     angle(90.0f), 
     rotSpeed(glm::pi<float>()/16.0f), 
     drawBuf(1), 
-    nParticles(150),
-    particleLifetime(4.0f),
+    nParticles(175),
+    particleLifetime(6.0f),
     particleTime(0.0f),
     particleDeltaT(0.0f)
 {
@@ -51,11 +51,17 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     samplesV = 8;
     jitterMapSize = 8;
     radius = 7.0f;
-    tree = ObjMesh::load("media/Linden.obj", true);
+
+    treeMeshes.push_back(ObjMesh::load("media/Tree5.obj", true));
+    treeMeshes.push_back(ObjMesh::load("media/Tree4.obj", true));
+    treeMeshes.push_back(ObjMesh::load("media/Tree2.obj", true));
+    treeMeshes.push_back(ObjMesh::load("media/Tree9.obj", true));
+    treeMeshes.push_back(ObjMesh::load("media/Tree7.obj", true));
 
     shrubMeshes.push_back(ObjMesh::load("media/shrub1.obj", true));
     shrubMeshes.push_back(ObjMesh::load("media/shrub2.obj", true));
-    //shrubMeshes.push_back(ObjMesh::load("media/forestfloor.obj", true));
+    shrubMeshes.push_back(ObjMesh::load("media/monstera.obj", true));
+    shrubMeshes.push_back(ObjMesh::load("media/elephant.obj", true));
 }
 
 void SceneBasic_Uniform::initScene()
@@ -148,7 +154,7 @@ void SceneBasic_Uniform::initScene()
             float x = (rand() % 100 - 50); //randomise placement
             float z = (rand() % 100 - 50);
 
-            treePos = glm::vec3(x, 2.0f, z);
+            treePos = glm::vec3(x, 2.25f, z);
 
             validTreePosition = true;
 
@@ -167,26 +173,49 @@ void SceneBasic_Uniform::initScene()
         }
 
         treesPosition.push_back(treePos);
-        treesScale.push_back(0.5f + (rand() % 20) * 0.01f);
+        treesScale.push_back(1.8f + (rand() % 40) * 0.01f);
         treesRotation.push_back((rand() % 360));
 
         float tint = 0.6f + (rand() % 40) / 100.0f;
         treeGreenTint.push_back(tint);
+
+        int meshChoice = rand() % treeMeshes.size();
+        treeMeshIndex.push_back(meshChoice);
     }
 
-    //Randomising shrub placement
+    // Randomising shrub placement
     for (int i = 0; i < shrubCount; i++)
     {
-        float x = randomFloat(-45.0f, 45.0f);
-        float z = randomFloat(-45.0f, 45.0f);
+        glm::vec3 shrubPos;
+        bool validShrubPosition = false;
+        int attempts = 0;
 
-        glm::vec2 shrubXZ(x, z);
-        glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+        while (!validShrubPosition && attempts < 100)
+        {
+            attempts++;
 
-        if (glm::distance(shrubXZ, playerXZ) < 4.0f)
-            continue;
+            float x = randomFloat(-30.0f, 30.0f);
+            float z = randomFloat(-30.0f, 30.0f);
 
-        shrubPositions.push_back(glm::vec3(x, 1.0f, z));
+            shrubPos = glm::vec3(x, 1.0f, z);
+
+            validShrubPosition = true;
+
+            //Plants away from trees to stop clipping
+            for (int j = 0; j < treesPosition.size(); j++)
+            {
+                glm::vec2 shrubXZ(shrubPos.x, shrubPos.z);
+                glm::vec2 treeXZ(treesPosition[j].x, treesPosition[j].z);
+
+                if (glm::distance(shrubXZ, treeXZ) < 2.0f)
+                {
+                    validShrubPosition = false;
+                    break;
+                }
+            }
+        }
+
+        shrubPositions.push_back(shrubPos);
         shrubScales.push_back(randomFloat(3.0f, 5.0f));
         shrubRotations.push_back(randomFloat(0.0f, 360.0f));
 
@@ -196,6 +225,7 @@ void SceneBasic_Uniform::initScene()
         int meshChoice = rand() % shrubMeshes.size();
         shrubMeshIndex.push_back(meshChoice);
     }
+
     //Good Fairy placement
     totalFairies = 9;
 
@@ -400,7 +430,7 @@ void SceneBasic_Uniform::update(float t)
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.1f;
+    float sensitivity = 0.06f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
@@ -418,7 +448,7 @@ void SceneBasic_Uniform::update(float t)
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(direction);
 
-    float speed = 8.0f * deltaTime;
+    float speed = 6.0f * deltaTime;
 
     glm::vec3 forward = glm::normalize(glm::vec3(cameraFront.x, 0.0f, cameraFront.z));
     glm::vec3 right = glm::normalize(glm::cross(forward, cameraUp));
@@ -731,7 +761,7 @@ void SceneBasic_Uniform::drawScene()
         ));
 
         setMatrices();
-        tree->render();
+        treeMeshes[treeMeshIndex[i]]->render();
     }
 
     //shrubs
@@ -1138,7 +1168,7 @@ void SceneBasic_Uniform::renderFairyDust(const glm::vec3& fairyPos)
     particleProg.use();
 
     particleProg.setUniform("Time", particleTime);
-    particleProg.setUniform("DeltaT", particleDeltaT * 0.35f);
+    particleProg.setUniform("DeltaT", particleDeltaT * 0.5f);
     particleProg.setUniform("Emitter", fairyPos);
 
     mat4 mv = view * mat4(1.0f);

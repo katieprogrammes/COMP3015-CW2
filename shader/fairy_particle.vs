@@ -33,9 +33,9 @@ float rand(float seed)
 vec3 FairyDirection(float id)
 {
     vec3 direction = vec3(
-        -0.15 + rand(id * 0.071 + 0.13) * 0.30,
-        -0.15 + rand(id * 0.113 + 0.37) * 0.30,
-        -0.15 + rand(id * 0.191 + 0.59) * 0.30
+        -0.12 + rand(id * 0.071 + 0.13) * 0.24,  // slight left/right
+        -0.65 + rand(id * 0.113 + 0.37) * 0.25,  // mostly downward
+        -0.12 + rand(id * 0.191 + 0.59) * 0.24   // slight forward/back
     );
 
     if (length(direction) < 0.001)
@@ -67,7 +67,13 @@ void update()
 
         float speed = 0.5 + rand(id * 0.271 + 0.83) * 0.15;
 
-        Position = Emitter;
+        vec3 startOffset = vec3(
+            -0.45 + rand(id * 0.331 + 0.11) * 0.90,
+            -0.05 + rand(id * 0.443 + 0.22) * 0.10,
+            -0.45 + rand(id * 0.557 + 0.33) * 0.90
+        );
+
+Position = Emitter + startOffset;
         Velocity = direction * speed;
 
         Age = 0.0;

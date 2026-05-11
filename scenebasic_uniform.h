@@ -83,7 +83,9 @@ private:
     //objects
     Plane plane;
     Sphere fairySphere;
-    std::unique_ptr<ObjMesh> tree;
+
+    std::vector<std::unique_ptr<ObjMesh>> treeMeshes;
+    std::vector<int> treeMeshIndex;
     std::vector<glm::vec3> treesPosition;
     std::vector<float> treesScale;
     std::vector<float> treesRotation;
@@ -97,8 +99,8 @@ private:
     std::vector<float> shrubGreenTint;
     std::vector<int> shrubMeshIndex;
     
-    int treeCount = 90;
-    int shrubCount = 200;
+    int treeCount = 100;
+    int shrubCount = 750;
 
     //fairy movement
     std::vector<glm::vec3> fairyOrbitCenters;
