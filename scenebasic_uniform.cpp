@@ -905,8 +905,7 @@ void SceneBasic_Uniform::setupFBO()
     // Create and set up the FBO
     glGenFramebuffers(1, &shadowFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-        GL_TEXTURE_2D, depthTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex, 0);
 
     GLenum drawBuffers[] = { GL_NONE };
     glDrawBuffers(1, drawBuffers);
@@ -1078,12 +1077,7 @@ void SceneBasic_Uniform::drawText(
     glBindVertexArray(textVAO);
     glBindBuffer(GL_ARRAY_BUFFER, textVBO);
 
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(glm::vec2),
-        vertices.data(),
-        GL_DYNAMIC_DRAW
-    );
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), vertices.data(), GL_DYNAMIC_DRAW);
 
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
 
@@ -1100,11 +1094,7 @@ void SceneBasic_Uniform::renderText()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    std::string scoreText =
-        "Fairies: "
-        + std::to_string(score)
-        + " / "
-        + std::to_string(totalFairies);
+    std::string scoreText = "Fairies: " + std::to_string(score) + " / " + std::to_string(totalFairies);
 
     drawText(scoreText, 20.0f, 30.0f, 3.0f, glm::vec4(0.75f, 0.95f, 1.0f, 1.0f));
 
@@ -1278,11 +1268,7 @@ void SceneBasic_Uniform::resetFairyDust()
     {
         glBindBuffer(GL_ARRAY_BUFFER, ageBuf[i]);
         glBufferSubData(
-            GL_ARRAY_BUFFER,
-            0,
-            nParticles * sizeof(GLfloat),
-            tempAge.data()
-        );
+            GL_ARRAY_BUFFER, 0, nParticles * sizeof(GLfloat), tempAge.data());
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1356,7 +1342,7 @@ void SceneBasic_Uniform::checkEvilFairyCollision()
 
             std::cout << "Corruption touched the player!" << std::endl;
 
-            // Move the evil fairy away so it does not repeatedly trigger every frame.
+            //Move the evil fairy away
             evilFairyOrbitCenters[i].x = randomFloat(-24.0f, 24.0f);
             evilFairyOrbitCenters[i].z = randomFloat(-24.0f, 16.0f);
 
@@ -1422,14 +1408,7 @@ void SceneBasic_Uniform::initSkybox()
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-        0,
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        3 * sizeof(float),
-        (void*)0
-    );
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3 * sizeof(float),(void*)0);
 
     glBindVertexArray(0);
 
@@ -1479,17 +1458,7 @@ GLuint SceneBasic_Uniform::loadCubemap(const std::vector<std::string>& faces)
             else if (nrChannels == 4)
                 format = GL_RGBA;
 
-            glTexImage2D(
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0,
-                format,
-                texWidth,
-                texHeight,
-                0,
-                format,
-                GL_UNSIGNED_BYTE,
-                data
-            );
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,0,format,texWidth,texHeight,0,format,GL_UNSIGNED_BYTE,data);
 
             stbi_image_free(data);
         }
@@ -1556,24 +1525,10 @@ void SceneBasic_Uniform::setupPostProcessing()
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(
-        0,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        4 * sizeof(float),
-        (void*)0
-    );
+    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,4 * sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(
-        1,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        4 * sizeof(float),
-        (void*)(2 * sizeof(float))
-    );
+    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,4 * sizeof(float),(void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
@@ -1584,17 +1539,7 @@ void SceneBasic_Uniform::setupPostProcessing()
     glGenTextures(1, &sceneTex);
     glBindTexture(GL_TEXTURE_2D, sceneTex);
 
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGB16F,
-        width,
-        height,
-        0,
-        GL_RGB,
-        GL_FLOAT,
-        nullptr
-    );
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,nullptr);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1656,30 +1601,14 @@ void SceneBasic_Uniform::setupPostProcessing()
 
         glBindTexture(GL_TEXTURE_2D, blurTex[i]);
 
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RGB16F,
-            width / 2,
-            height / 2,
-            0,
-            GL_RGB,
-            GL_FLOAT,
-            nullptr
-        );
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width / 2,height / 2,0,GL_RGB,GL_FLOAT,nullptr);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER,
-            GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D,
-            blurTex[i],
-            0
-        );
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,blurTex[i],0);
 
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         glReadBuffer(GL_NONE);
