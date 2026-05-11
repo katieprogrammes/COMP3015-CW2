@@ -165,6 +165,8 @@
     <None Include="shader\basic_uniform.vert" />
     <None Include="shader\fairy_particle.fs" />
     <None Include="shader\fairy_particle.vs" />
+    <None Include="shader\post.fs" />
+    <None Include="shader\post.vs" />
     <None Include="shader\skybox.fs" />
     <None Include="shader\skybox.vs" />
     <None Include="shader\solid.fs" />

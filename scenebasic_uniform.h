@@ -28,7 +28,7 @@ private:
     float rotSpeed;
     float tPrev;
     float angle;
-    GLSLProgram prog, solidProg, uiProg, particleProg, skyboxProg;
+    GLSLProgram prog, solidProg, uiProg, particleProg, skyboxProg, postProg;
     GLuint shadowFBO, pass1Index, pass2Index, depthTex;
     int shadowMapWidth, shadowMapHeight;
     glm::mat4 lightPV, shadowBias;
@@ -58,6 +58,15 @@ private:
     float particleLifetime = 3.0f;
     float particleTime = 0.0f;
     float particleDeltaT = 0.0f;
+
+    //bloom variables
+    GLuint sceneFBO = 0;
+    GLuint sceneTex = 0;
+    GLuint sceneDepth = 0;
+
+    GLuint quadVAO = 0;
+    GLuint quadVBO = 0;
+
 
     //objects
     Plane plane;
@@ -137,6 +146,9 @@ private:
     void setupFBO();
     void drawScene();
     void spitOutDepthBuffer();
+
+    void setupPostProcessing();
+    void renderFullScreenQuad();
     
     float jitter();
     void buildJitterTex();

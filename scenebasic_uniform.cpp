@@ -275,6 +275,10 @@ void SceneBasic_Uniform::compile()
         particleProg.compileShader("shader/fairy_particle.vs", GLSLShader::VERTEX);
         particleProg.compileShader("shader/fairy_particle.fs", GLSLShader::FRAGMENT);
 
+        postProg.compileShader("shader/post.vs", GLSLShader::VERTEX);
+        postProg.compileShader("shader/post.fs", GLSLShader::FRAGMENT);
+        postProg.link();
+
         GLuint particleHandle = particleProg.getHandle();
         const char* outputNames[] = { "Position", "Velocity", "Age" };
         glTransformFeedbackVaryings(
@@ -436,7 +440,7 @@ void SceneBasic_Uniform::render()
     prog.setUniform("Light.Position", view * vec4(lightFrustum.getOrigin(), 1.0f));
     projection = glm::perspective(glm::radians(50.0f), (float)width / height, 0.1f, 100.0f);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, width, height);
 
@@ -599,7 +603,22 @@ void SceneBasic_Uniform::render()
             dustActive = false;
         }
     }
+    //Draw Scene texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, width, height);
 
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    postProg.use();
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, sceneTex);
+
+    renderFullScreenQuad();
+
+    glEnable(GL_DEPTH_TEST);
     renderText();
 }
 
@@ -689,6 +708,10 @@ void SceneBasic_Uniform::resize(int w, int h)
     height = h;
     projection = glm::perspective(glm::radians(70.0f), (float)w / h, 0.3f, 100.0f);
 
+    if (sceneFBO == 0)
+    {
+        setupPostProcessing();
+    }
 }
 
 void SceneBasic_Uniform::setMatrices()
@@ -1361,4 +1384,107 @@ void SceneBasic_Uniform::renderSkybox()
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
 }
+void SceneBasic_Uniform::setupPostProcessing()
+{
+    // Full-screen quad: position x/y, texcoord u/v
+    float quadVertices[] = {
+        // positions    // tex coords
+        -1.0f, -1.0f,   0.0f, 0.0f,
+         1.0f, -1.0f,   1.0f, 0.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
 
+        -1.0f, -1.0f,   0.0f, 0.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
+        -1.0f,  1.0f,   0.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        4 * sizeof(float),
+        (void*)0
+    );
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(
+        1,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        4 * sizeof(float),
+        (void*)(2 * sizeof(float))
+    );
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    // Scene framebuffer
+    glGenFramebuffers(1, &sceneFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
+
+    glGenTextures(1, &sceneTex);
+    glBindTexture(GL_TEXTURE_2D, sceneTex);
+
+    // Use RGB16F so it can later support HDR/bloom-style bright values.
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGB16F,
+        width,
+        height,
+        0,
+        GL_RGB,
+        GL_FLOAT,
+        nullptr
+    );
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        sceneTex,
+        0
+    );
+
+    // Depth buffer for normal 3D depth testing
+    glGenRenderbuffers(1, &sceneDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, sceneDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+
+    glFramebufferRenderbuffer(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_RENDERBUFFER,
+        sceneDepth
+    );
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Post-processing framebuffer is not complete." << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    postProg.use();
+    postProg.setUniform("SceneTex", 6);
+}
+void SceneBasic_Uniform::renderFullScreenQuad()
+{
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}

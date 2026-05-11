@@ -101,6 +101,12 @@
     <None Include="shader\skybox.fs">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shader\post.vs">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader\post.fs">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper\scene.h">
