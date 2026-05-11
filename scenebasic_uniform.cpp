@@ -90,7 +90,7 @@ void SceneBasic_Uniform::initScene()
     ParticleUtils::createRandomTex1D(nParticles * 3);
 
     glActiveTexture(GL_TEXTURE5);
-    treeTex = Texture::loadTexture("media/texture/test1.png");
+    treeTex = Texture::loadTexture("media/texture/Linden.png");
     glBindTexture(GL_TEXTURE_2D, treeTex);
 
     groundTex = Texture::loadTexture("media/texture/forestFloor.png");
@@ -627,7 +627,7 @@ void SceneBasic_Uniform::render()
     {
         //normal state
         prog.setUniform("Fog.MaxDist", 22.0f);
-        prog.setUniform("Fog.MinDist", 2.0f);
+        prog.setUniform("Fog.MinDist", 4.0f);
         prog.setUniform("Fog.Color", vec3(0.10f, 0.14f, 0.18f));
     }
 
@@ -785,12 +785,13 @@ void SceneBasic_Uniform::drawScene()
 
     for (int i = 0; i < treesPosition.size(); i++) {
 
-        prog.setUniform("Material.Kd", vec3(1.0f));
-        prog.setUniform("Material.Ks", vec3(0.2f));
-        prog.setUniform("Material.Ka", vec3(0.02f));
-        prog.setUniform("Material.Shininess", 15.0f);
-        prog.setUniform("UseTexture", 1);
-        prog.setUniform("TextureScale", 1.0f);
+        float tint = treeGreenTint[i];
+
+        prog.setUniform("Material.Kd", vec3(0.03, 0.10, 0.45));
+        prog.setUniform("Material.Ks", vec3(0.03f));
+        prog.setUniform("Material.Ka", vec3(0.02f,0.07f,0.28f));
+        prog.setUniform("Material.Shininess", 8.0f);
+        prog.setUniform("UseTexture", 0);
 
         model = mat4(1.0f);
 
