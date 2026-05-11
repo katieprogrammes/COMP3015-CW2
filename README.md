@@ -45,6 +45,9 @@ Shadow map generation:
 Shadow logic in the fragment shader:
 <img width="383" height="443" alt="image" src="https://github.com/user-attachments/assets/b9c7f37f-5486-4568-a6e3-3326161fbcc6" />
 
+### 2. Bloom Post-Processing
+Bloom is implemented as a multi-pass post-processing effect. The scene is rendered to a texture, bright areas are extracted, blurred, and then layered back over the final image.
+
 
 
 
