@@ -620,8 +620,8 @@ void SceneBasic_Uniform::drawScene()
 
         prog.setUniform("Material.Kd", vec3(1.0f));
         prog.setUniform("Material.Ks", vec3(0.2f));
-        prog.setUniform("Material.Ka", vec3(0.05f));
-        prog.setUniform("Material.Shininess", 50.0f);
+        prog.setUniform("Material.Ka", vec3(0.02f));
+        prog.setUniform("Material.Shininess", 15.0f);
         prog.setUniform("UseTexture", 1);
 
         model = mat4(1.0f);
