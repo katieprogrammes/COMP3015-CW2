@@ -1537,7 +1537,7 @@ void SceneBasic_Uniform::renderSkybox()
 }
 void SceneBasic_Uniform::setupPostProcessing()
 {
-    // Full-screen quad: position x/y, texcoord u/v
+    //Full-screen quad
     float quadVertices[] = {
         // positions    // tex coords
         -1.0f, -1.0f,   0.0f, 0.0f,
@@ -1578,7 +1578,6 @@ void SceneBasic_Uniform::setupPostProcessing()
 
     glBindVertexArray(0);
 
-    //Scene framebuffer
     glGenFramebuffers(1, &sceneFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
 
@@ -1599,34 +1598,103 @@ void SceneBasic_Uniform::setupPostProcessing()
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_COLOR_ATTACHMENT0,
-        GL_TEXTURE_2D,
-        sceneTex,
-        0
-    );
+    glFramebufferTexture2D( GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,sceneTex,0);
 
-    //Depth buffer for normal 3D depth testing
+    //Depth buffer for 3D depth testing
     glGenRenderbuffers(1, &sceneDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, sceneDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
 
-    glFramebufferRenderbuffer(
-        GL_FRAMEBUFFER,
-        GL_DEPTH_ATTACHMENT,
-        GL_RENDERBUFFER,
-        sceneDepth
-    );
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,sceneDepth);
 
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glReadBuffer(GL_NONE);
 
-    if (status != GL_FRAMEBUFFER_COMPLETE)
+    GLenum sceneStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    if (sceneStatus != GL_FRAMEBUFFER_COMPLETE)
     {
-        std::cerr << "Post-processing framebuffer is not complete." << std::endl;
+        std::cerr << "Scene framebuffer is not complete. Status: "
+            << sceneStatus << std::endl;
     }
 
+    glGenFramebuffers(1, &brightFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, brightFBO);
+
+    glGenTextures(1, &brightTex);
+    glBindTexture(GL_TEXTURE_2D, brightTex);
+
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width / 2,height / 2, 0,GL_RGB,GL_FLOAT,nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brightTex, 0);
+
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glReadBuffer(GL_NONE);
+
+    GLenum brightStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    if (brightStatus != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Bright-pass framebuffer is not complete. Status: "
+            << brightStatus << std::endl;
+    }
+
+    glGenFramebuffers(2, blurFBO);
+    glGenTextures(2, blurTex);
+
+    for (int i = 0; i < 2; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[i]);
+
+        glBindTexture(GL_TEXTURE_2D, blurTex[i]);
+
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB16F,
+            width / 2,
+            height / 2,
+            0,
+            GL_RGB,
+            GL_FLOAT,
+            nullptr
+        );
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D,
+            blurTex[i],
+            0
+        );
+
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glReadBuffer(GL_NONE);
+
+        GLenum blurStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+        if (blurStatus != GL_FRAMEBUFFER_COMPLETE)
+        {
+            std::cerr << "Blur framebuffer " << i << " is not complete. Status: "
+                << blurStatus << std::endl;
+        }
+    }
+
+
+    //Return to normal screen framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     postProg.use();
@@ -1641,47 +1709,6 @@ void SceneBasic_Uniform::setupPostProcessing()
 
     blurProg.use();
     blurProg.setUniform("ImageTex", 6);
-
-    //bright framebuffer for bloom
-    glGenFramebuffers(1, &brightFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, brightFBO);
-
-    glGenTextures(1, &brightTex);
-    glBindTexture(GL_TEXTURE_2D, brightTex);
-
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGB16F,
-        width / 2,
-        height / 2,
-        0,
-        GL_RGB,
-        GL_FLOAT,
-        nullptr
-    );
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_COLOR_ATTACHMENT0,
-        GL_TEXTURE_2D,
-        brightTex,
-        0
-    );
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cerr << "Bright-pass framebuffer is not complete." << std::endl;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    brightProg.use();
-    brightProg.setUniform("SceneTex", 6);
-    brightProg.setUniform("Threshold", bloomThreshold);
 }
 void SceneBasic_Uniform::renderBlurPass()
 {
@@ -1689,11 +1716,22 @@ void SceneBasic_Uniform::renderBlurPass()
     glDisable(GL_CULL_FACE);
 
     blurProg.use();
+    blurProg.setUniform("ImageTex", 6);
 
     glViewport(0, 0, width / 2, height / 2);
 
-    // Pass 1: horizontal blur
+
+    //Pass 1 horizontal
     glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[0]);
+
+    GLenum status0 = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status0 != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Blur framebuffer 0 incomplete during render. Status: "
+            << status0 << std::endl;
+        return;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
 
     blurProg.setUniform("Horizontal", 1);
@@ -1703,8 +1741,18 @@ void SceneBasic_Uniform::renderBlurPass()
 
     renderFullScreenQuad();
 
-    // Pass 2: vertical blur
+
+    //Pass 2 vertical
     glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[1]);
+
+    GLenum status1 = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status1 != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Blur framebuffer 1 incomplete during render. Status: "
+            << status1 << std::endl;
+        return;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
 
     blurProg.setUniform("Horizontal", 0);
@@ -1724,6 +1772,15 @@ void SceneBasic_Uniform::renderFullScreenQuad()
 void SceneBasic_Uniform::renderBrightPass()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, brightFBO);
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Bright framebuffer incomplete during render. Status: "
+            << status << std::endl;
+        return;
+    }
+
     glViewport(0, 0, width / 2, height / 2);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1735,9 +1792,8 @@ void SceneBasic_Uniform::renderBrightPass()
     glActiveTexture(GL_TEXTURE6);
     glBindTexture(GL_TEXTURE_2D, sceneTex);
 
+    brightProg.setUniform("SceneTex", 6);
     brightProg.setUniform("Threshold", bloomThreshold);
 
     renderFullScreenQuad();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
