@@ -1091,7 +1091,6 @@ void SceneBasic_Uniform::drawText(
 }
 void SceneBasic_Uniform::renderText()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
 
     glDisable(GL_DEPTH_TEST);
@@ -1714,8 +1713,6 @@ void SceneBasic_Uniform::renderBlurPass()
     glBindTexture(GL_TEXTURE_2D, blurTex[0]);
 
     renderFullScreenQuad();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void SceneBasic_Uniform::renderFullScreenQuad()

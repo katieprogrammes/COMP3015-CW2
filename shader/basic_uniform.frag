@@ -102,7 +102,7 @@ void shadeWithShadow()
 	    }
 
     //Makes shadow stronger
-    shadow = pow(shadow, 3.0);
+    shadow = pow(shadow, 4.0);
     shadow *= 0.65;
     shadow = clamp(shadow, 0.0, 1.0); 
 
