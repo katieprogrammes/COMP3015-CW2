@@ -40,7 +40,7 @@ vec3 FairyDirection(float id)
 
     if (length(direction) < 0.001)
     {
-        direction = vec3(1.0, 0.0, 0.0);
+        direction = vec3(0.0, -1.0, 0.0);
     }
 
     return normalize(direction);

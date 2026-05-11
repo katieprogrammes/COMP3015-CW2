@@ -97,8 +97,8 @@ private:
     std::vector<float> shrubGreenTint;
     std::vector<int> shrubMeshIndex;
     
-    int treeCount = 120;
-    int shrubCount = 300;
+    int treeCount = 90;
+    int shrubCount = 200;
 
     //fairy movement
     std::vector<glm::vec3> fairyOrbitCenters;

@@ -31,11 +31,11 @@ void main()
         if (FairyType == 2)
     {
         vec3 evilBlack = vec3(0.0, 0.0, 0.0);
-        vec3 evilRed = vec3(1.0, 0.02, 0.10);
-        vec3 evilPurple = vec3(0.35, 0.0, 0.45);
+        vec3 evilRed = vec3(1.0, 0.02, 0.04);
+        vec3 evilPurple = vec3(0.28, 0.0, 0.16);
 
         vec3 corrupted = mix(evilBlack, evilPurple, t);
-        corrupted = mix(corrupted, evilRed, smoothstep(0.65, 1.0, t));
+        corrupted = mix(corrupted, evilRed, smoothstep(0.45, 1.0, t));
 
         finalColor.rgb = corrupted;
         finalColor.rgb *= 0.75 + t * 0.65;

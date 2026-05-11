@@ -39,8 +39,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     angle(90.0f), 
     rotSpeed(glm::pi<float>()/16.0f), 
     drawBuf(1), 
-    nParticles(100),
-    particleLifetime(7.0f),
+    nParticles(150),
+    particleLifetime(4.0f),
     particleTime(0.0f),
     particleDeltaT(0.0f)
 {
@@ -99,8 +99,8 @@ void SceneBasic_Uniform::initScene()
     particleProg.use();
     particleProg.setUniform("RandomTex", 4);
     particleProg.setUniform("ParticleLifetime", particleLifetime);
-    particleProg.setUniform("ParticleSize", 0.035f);
-    particleProg.setUniform("Accel", vec3(0.0f, 0.0f, 0.0f));
+    particleProg.setUniform("ParticleSize", 0.05f);
+    particleProg.setUniform("Accel", vec3(0.0f, -0.5f, 0.0f));
 
     GLuint programHandle = prog.getHandle();
     pass1Index = glGetSubroutineIndex(programHandle, GL_FRAGMENT_SHADER, "recordDepth");
@@ -135,11 +135,38 @@ void SceneBasic_Uniform::initScene()
 
     //Randomising tree placement
 
-    for (int i = 0; i < treeCount; i++) {
-        float x = (rand() % 100 - 50); //randomise placement
-        float z = (rand() % 100 - 50);
+    for (int i = 0; i < treeCount; i++)
+    {
+        glm::vec3 treePos;
+        bool validTreePosition = false;
+        int attempts = 0;
 
-        treesPosition.push_back(glm::vec3(x, 2.0f, z));
+        while (!validTreePosition && attempts < 100)
+        {
+            attempts++;
+
+            float x = (rand() % 100 - 50); //randomise placement
+            float z = (rand() % 100 - 50);
+
+            treePos = glm::vec3(x, 2.0f, z);
+
+            validTreePosition = true;
+
+            //Spawn away from each other
+            for (int j = 0; j < treesPosition.size(); j++)
+            {
+                glm::vec2 newTreeXZ(treePos.x, treePos.z);
+                glm::vec2 existingTreeXZ(treesPosition[j].x, treesPosition[j].z);
+
+                if (glm::distance(newTreeXZ, existingTreeXZ) < 3.0f)
+                {
+                    validTreePosition = false;
+                    break;
+                }
+            }
+        }
+
+        treesPosition.push_back(treePos);
         treesScale.push_back(0.5f + (rand() % 20) * 0.01f);
         treesRotation.push_back((rand() % 360));
 
@@ -180,22 +207,43 @@ void SceneBasic_Uniform::initScene()
     for (int i = 0; i < totalFairies; i++)
     {
         glm::vec3 spawnCenter;
+        bool validSpawn = false;
+        int attempts = 0;
 
-        //Random spawn aera
-        spawnCenter.x = randomFloat(-22.0f, 22.0f);
-        spawnCenter.y = 4.0f;
-        spawnCenter.z = randomFloat(-22.0f, 14.0f);
-
-        //Spawn away from player
-        glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
-        glm::vec2 playerStartXZ(cameraPos.x, cameraPos.z);
-
-        while (glm::distance(spawnXZ, playerStartXZ) < 4.0f)
+        while (!validSpawn && attempts < 100)
         {
-            spawnCenter.x = randomFloat(-24.0f, 24.0f);
-            spawnCenter.z = randomFloat(-24.0f, 16.0f);
+            attempts++;
 
-            spawnXZ = glm::vec2(spawnCenter.x, spawnCenter.z);
+            //Random spawn area
+            spawnCenter.x = randomFloat(-22.0f, 22.0f);
+            spawnCenter.y = 4.0f;
+            spawnCenter.z = randomFloat(-22.0f, 14.0f);
+
+            glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
+            glm::vec2 playerStartXZ(cameraPos.x, cameraPos.z);
+
+            validSpawn = true;
+
+            //Spawn away from player
+            if (glm::distance(spawnXZ, playerStartXZ) < 4.0f)
+            {
+                validSpawn = false;
+            }
+
+            //Spawn away from each other
+            for (int j = 0; j < fairyOrbitCenters.size(); j++)
+            {
+                glm::vec2 otherXZ(
+                    fairyOrbitCenters[j].x,
+                    fairyOrbitCenters[j].z
+                );
+
+                if (glm::distance(spawnXZ, otherXZ) < 6.0f)
+                {
+                    validSpawn = false;
+                    break;
+                }
+            }
         }
 
         float angle = randomFloat(0.0f, glm::two_pi<float>());
@@ -224,19 +272,39 @@ void SceneBasic_Uniform::initScene()
     for (int i = 0; i < totalEvilFairies; i++)
     {
         glm::vec3 spawnCenter;
+        bool validSpawn = false;
 
-        spawnCenter.x = randomFloat(-24.0f, 24.0f);
-        spawnCenter.y = 4.0f;
-        spawnCenter.z = randomFloat(-24.0f, 16.0f);
-
-        glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
-        glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
-
-        while (glm::distance(spawnXZ, playerXZ) < 6.0f)
+        while (!validSpawn)
         {
             spawnCenter.x = randomFloat(-24.0f, 24.0f);
+            spawnCenter.y = 4.0f;
             spawnCenter.z = randomFloat(-24.0f, 16.0f);
-            spawnXZ = glm::vec2(spawnCenter.x, spawnCenter.z);
+
+            glm::vec2 spawnXZ(spawnCenter.x, spawnCenter.z);
+            glm::vec2 playerXZ(cameraPos.x, cameraPos.z);
+
+            validSpawn = true;
+
+            //Spawn away from player
+            if (glm::distance(spawnXZ, playerXZ) < 6.0f)
+            {
+                validSpawn = false;
+            }
+
+            //Spawn away from eachother
+            for (int j = 0; j < evilFairyOrbitCenters.size(); j++)
+            {
+                glm::vec2 otherXZ(
+                    evilFairyOrbitCenters[j].x,
+                    evilFairyOrbitCenters[j].z
+                );
+
+                if (glm::distance(spawnXZ, otherXZ) < 10.0f)
+                {
+                    validSpawn = false;
+                    break;
+                }
+            }
         }
 
         float angle = randomFloat(0.0f, glm::two_pi<float>());
@@ -388,6 +456,13 @@ void SceneBasic_Uniform::update(float t)
                     fairyCollected[i] = true;
                     score++;
 
+                    if (score >= totalFairies)
+                    {
+                        gameWon = true;
+                        corruptionTimer = 0.0f;
+                        std::cout << "The grove is restored!" << std::endl;
+                    }
+
                     dustPosition = fairyPositions[i];
                     dustTimer = 0.0f;
                     dustActive = true;
@@ -400,15 +475,6 @@ void SceneBasic_Uniform::update(float t)
                         + std::to_string(score)
                         + " / "
                         + std::to_string(totalFairies);
-
-                    glfwSetWindowTitle(window, title.c_str());
-
-                    if (score >= totalFairies)
-                    {
-                        gameWon = true;
-                        std::cout << "You collected all fairies!" << std::endl;
-                        glfwSetWindowTitle(window, "Shadow Grove - All Fairies Collected!");
-                    }
                 }
             }
         }
@@ -564,7 +630,7 @@ void SceneBasic_Uniform::render()
             evilAuraModel = glm::translate(evilAuraModel, evilFairyPositions[i]);
             evilAuraModel = glm::scale(evilAuraModel, vec3(1.4f + 0.5f * flicker));
 
-            solidProg.setUniform("Color",vec4(0.45f,0.0f,0.08f,0.30f + 0.22f * flicker));
+            solidProg.setUniform("Color",vec4(0.55f,0.0f,0.03f,0.30f + 0.22f * flicker));
 
             solidProg.setUniform("MVP", projection * view * evilAuraModel);
             fairySphere.render();
@@ -573,7 +639,7 @@ void SceneBasic_Uniform::render()
             evilCoreModel = glm::translate(evilCoreModel, evilFairyPositions[i]);
             evilCoreModel = glm::scale(evilCoreModel, vec3(0.7f + 0.25f * flicker));
 
-            solidProg.setUniform("Color", vec4(1.0f, 0.0f, 0.08f,1.0f));
+            solidProg.setUniform("Color", vec4(1.0f, 0.0f, 0.0f,1.0f));
 
             solidProg.setUniform("MVP", projection * view * evilCoreModel);
             fairySphere.render();
@@ -974,12 +1040,12 @@ void SceneBasic_Uniform::renderText()
 
     if (corruptionTimer > 0.0f && !gameWon)
     {
-        drawText("Corruption!", 285.0f, 60.0f, 2.0f,glm::vec4(1.0f, 0.2f, 0.45f, 1.0f));
+        drawText("Corruption!", 290.0f, 60.0f, 3.0f,glm::vec4(1.0f, 0.2f, 0.45f, 1.0f));
     }
 
     if (gameWon)
     {
-        drawText("The grove is restored", 20.0f, 65.0f, 2.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
+        drawText("The Grove is Restored!", 225.0f, 80.0f, 3.0f, glm::vec4(0.85f, 1.0f, 1.0f, 1.0f));
     }
 
     glDisable(GL_BLEND);
@@ -1072,7 +1138,7 @@ void SceneBasic_Uniform::renderFairyDust(const glm::vec3& fairyPos)
     particleProg.use();
 
     particleProg.setUniform("Time", particleTime);
-    particleProg.setUniform("DeltaT", particleDeltaT);
+    particleProg.setUniform("DeltaT", particleDeltaT * 0.35f);
     particleProg.setUniform("Emitter", fairyPos);
 
     mat4 mv = view * mat4(1.0f);
