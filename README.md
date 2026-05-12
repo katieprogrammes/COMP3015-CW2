@@ -174,6 +174,11 @@ Aside from the previously mentioned tree boundary, I also used AI to help me und
 Overall, the project combines multiple shader techniques into a cohesive interactive scene. The strongest parts of the project are the shadow mapping, bloom, fairy dust particles, procedural fairy shimmer, and the way these effects are tied to gameplay feedback. The main challenge was balancing visual density, aesthetics and performance. A dense forest was important for atmosphere, but placing too many trees and shrubs made the scene visually cluttered or caused plants to clip through other meshes. The final version uses randomised placement, mesh variation and a tree border to create a fuller grove while keeping the player area visually readable.
 Another challenge was the tree material setup. The OBJ loader used in the project does not support .mtl materials, so the final trees use a stylised darker appearance instead of relying on separate bark and leaf textures. If I continued developing the project, I would improve the tree textures, add sound effects, improve the UI, implement environment collision and also add another gameplay mechanic of corrupted fairies damaging the player while "Health fairies" healed them to make the gameplay more engaging.
 
+## Video Link
+
+https://youtu.be/owi9zH8ojao
+
+
 ## Asset Credits
 - shader_m.h and camera.h: LearnOpenGL
 - Plane Texture: "Forested Floor" (https://skfb.ly/oMG9p) by BenKiplinger is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
