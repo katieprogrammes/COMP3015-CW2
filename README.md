@@ -12,7 +12,7 @@ This project uses the COMP3015 OpenGL template and helper files provided during 
 - Both x64 Debug and x64 Release for build configuration
 
 ## How To Compile
-You can clone from github into Visual Studio then open the .sln (solution) file and you can then either run through the Debug or Release configuration (x64 version).
+You can clone from github into Visual Studio then open the .sln (solution) file and run through the Release configuration (x64 version).
 
 Alternatively, the .exe file provided in Release/x64 should run without any additional setup.
 
