@@ -13,14 +13,27 @@ You can clone from github into Visual Studio then open the .sln (solution) file 
 
 Alternatively, the .exe file provided in Release/x64 should run without any additional setup.
 
+The project was developed and tested using:
+
+-Visual Studio 2022
+
+- Windows 11 Operating System
+
+- Both x64 Debug and x64 Release for build configuration
+
 ## Controls
 Mouse - Look Around
+
 W key - Move Forward
+
 A - Move Left
+
 S - Move backward
+
 D - Move right
 
 Move into a blue fairy - collect/rescue them
+
 Move into a red fairy - trigger the corruption effect 
 
 The player is kept inside the forest area using a camera position clamp. A tree border surrounds the playable area to visually represent the boundary - this was inspired by the Pokemon games.
@@ -39,7 +52,7 @@ The project uses a shadow map pass before the main render pass. The shadow map i
 Framebuffer Object setup function:
 <img width="380" height="363" alt="image" src="https://github.com/user-attachments/assets/ca4fdae5-85f1-440f-8123-e4861c05fc98" />
 
-Light frustrum setup:
+Light frustum setup:
 <img width="363" height="62" alt="image" src="https://github.com/user-attachments/assets/1dd70a15-0363-40f4-bab9-f1d779ae4c27" />
 
 Shadow map generation:
@@ -101,7 +114,34 @@ The fragment shader for noise sampling and to differentiate between the two type
 Rendering both fairies with their noise settings implemented:
 <img width="1125" height="531" alt="image" src="https://github.com/user-attachments/assets/0f4c49aa-8af9-4bf5-b746-74b3b427a3b6" />
 
+### 5. Gameplay and Scene Interaction
+
+<img width="399" height="98" alt="image" src="https://github.com/user-attachments/assets/dbf75d33-d338-4092-8dd2-c146be9a0cfe" />
+
+The shader effects are connected to the game mechanics. Blue fairies act as collectibles, red fairies act as hazards, and the world state changes depending on the player’s progress.
+
+Collecting a blue fairy increases the score and triggers the particle effect:
+
+<img width="796" height="598" alt="Recording 2026-05-12 005124" src="https://github.com/user-attachments/assets/0f34847c-7700-49c3-b95d-64ea59980738" />
+
+<img width="308" height="341" alt="image" src="https://github.com/user-attachments/assets/96c647cd-1a3b-4260-af9e-ec4ed95989c5" />
+
+Touching a red fairy triggers the corruption state.
+
+<img width="796" height="592" alt="Recording 2026-05-12 005646" src="https://github.com/user-attachments/assets/d2226d05-98f8-41ff-b0d5-373d88610354" />
+
+<img width="304" height="226" alt="image" src="https://github.com/user-attachments/assets/b6342940-907b-4f26-acfc-ff99eb99503f" />
+
+Collecting all blue fairies triggers the restored grove state.
+
+<img width="796" height="600" alt="Recording 2026-05-12 010229" src="https://github.com/user-attachments/assets/cfa5901c-145e-46fb-8a20-f85229f1026f" />
+
+<img width="263" height="64" alt="image" src="https://github.com/user-attachments/assets/caa3c4f3-17ff-4572-b83a-aca887303870" />
 
 
 
+
+
+
+Touching a red fairy triggers the corruption state.
 
