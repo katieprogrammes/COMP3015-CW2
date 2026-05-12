@@ -640,7 +640,7 @@ void SceneBasic_Uniform::render()
     solidProg.setUniform("Color", vec4(1.0f, 0.0f, 0.0f, 1.0f));
     mat4 mv = view * lightFrustum.getInverseViewMatrix();
     solidProg.setUniform("MVP", projection * mv);
-    //lightFrustum.render();
+    //lightFrustum.render(); //used for debugging
 
     //Draw good fairies
     solidProg.use();
