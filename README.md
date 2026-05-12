@@ -7,7 +7,7 @@ The player explores a dark magical grove that has been attacked by corrupted red
 This project uses the COMP3015 OpenGL template and helper files provided during the module labs aside from shader_m.h and camera.h which were taken from learnopenGL to support the skybox and camera movement. It also includes:
 - OpenGL 4.6 / GLSL
 - GLFW / GLAD / GLM as provided by the COMP3015 template
-- -Visual Studio 2022
+- Visual Studio 2022
 - Windows 11 Operating System
 - Both x64 Debug and x64 Release for build configuration
 
@@ -101,7 +101,7 @@ Rendering the particles:
 
 <img width="798" height="600" alt="Recording 2026-05-12 002135" src="https://github.com/user-attachments/assets/3a32389d-9c30-4e23-9704-3d92c5abf0c3" />
 
-The fairies use animated noise to create a shimmering surface. The same shader supports both good and corrupted fairies by switching colour palettes using `FairyType`.
+The fairies use animated noise to create a shimmering surface. The same shader supports both good and corrupted fairies by switching colour palettes using "FairyType".
 
 The fragment shader for noise sampling and to differentiate between the two types of fairies:
 <img width="443" height="503" alt="image" src="https://github.com/user-attachments/assets/cf829bd9-7e1b-48de-8154-5906e63d5e04" />
@@ -150,4 +150,35 @@ The "render()" function has several stages:
 8) Draw UI text
 
 ## What Makes the Shader Program Special
-The project combines multiple shader techniques into one interactive scene. While each feature are in different shaders, they are all connected to the theme and mechanics of the grove.
+The project combines multiple shader techniques into one interactive scene. While each feature is in different shaders, they are all connected to the theme and mechanics of the grove.
+
+Bloom makes the fairies stand out in the dark environment. The particle system provides feedback when a fairy is collected. The procedural noise shader gives the fairies a moving shimmer and visually separates good fairies from corrupted ones. The corruption state changes the atmosphere using darker fog and warning text.
+
+This makes the scene feel more like a mini game prototype rather than just a static scene with shader implementation
+
+## Starting Point and Adaptation
+
+The project was built from the COMP3015 OpenGL template. Most of the code was adapted from the module labs with the skybox and UI adapted from a previous module. The only two exceptions to this were the movement of the fairies around a radius and the tree border. 
+
+The fairy orbit animation was adapted from GLM transformation examples from LearnOpenGL and Programming Creatively. I used the same principles that they taught in terms of applying translations and rotations to a model over time, then using that transformed position as the fairy’s location. I adapted it from object/cube orbiting into a system where collectible fairies circle the grove and can be collected by the player.
+
+For the tree boundary, I attempted to map the trees myself but after great difficulty I asked AI: 
+"In this file, I have an invisible border but it looks strange given how dense the player area is. I would like something along the lines of a tree border
+Is this possible and would it affect the light of the overall scene?" and this was it's response which I implemented so the player would not be confused by the sudden stop in movement: https://chatgpt.com/s/t_6a022113f3148191af101d2fbab1c2c2
+While I asked AI to help me visualise the border, I implemented the player movement barrier myself using knowledge from a previous module
+
+## AI Usage
+Aside from the previously mentioned tree boundary, I also used AI to help me understand how to get my particles to act the way I wanted to. After reading many forums and documentation, I could not get the particle behaviour I wanted so I asked AI to assist me in what values I needed to tweak to provide the vision I wanted: https://chatgpt.com/share/6a027b75-35f8-838e-8936-0fbeef4eb28e
+
+## Evaluation
+Overall, the project combines multiple shader techniques into a cohesive interactive scene. The strongest parts of the project are the shadow mapping, bloom, fairy dust particles, procedural fairy shimmer, and the way these effects are tied to gameplay feedback. The main challenge was balancing visual density, aesthetics and performance. A dense forest was important for atmosphere, but placing too many trees and shrubs made the scene visually cluttered or caused plants to clip through other meshes. The final version uses randomised placement, mesh variation and a tree border to create a fuller grove while keeping the player area visually readable.
+Another challenge was the tree material setup. The OBJ loader used in the project does not support .mtl materials, so the final trees use a stylised darker appearance instead of relying on separate bark and leaf textures. If I continued developing the project, I would improve the tree textures, add sound effects, improve the UI, implement environment collision and also add another gameplay mechanic of corrupted fairies damaging the player while "Health fairies" healed them to make the gameplay more engaging.
+
+## Asset Credits
+- shader_m.h and camera.h: LearnOpenGL
+- Plane Texture: "Forested Floor" (https://skfb.ly/oMG9p) by BenKiplinger is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+- monstera.obj: "Monstera Plants" (https://skfb.ly/oJLEL) by eb78 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+- elephant.obj: "Elephant Ear Plant" (https://skfb.ly/6YTsp) by BANDANNA is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+- shrub1.obj: "Low Poly Shrub OR Grass Clover" (https://skfb.ly/o7L9L) by Natural_Disbuster is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+- shrub2.obj: "Low Poly Shrub - Small Texture" (https://skfb.ly/o7unT) by Natural_Disbuster is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+- All trees: https://quaternius.itch.io/textured-lowpoly-trees
