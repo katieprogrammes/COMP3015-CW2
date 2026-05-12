@@ -77,7 +77,7 @@ void shadeWithShadow()
     int samplesDiv2 = int(OffsetTexSize.z);
 
 	vec4 sc = ShadowCoord;
-	// Don't test points behind the light source.
+
 	if( sc.z >= 0 ) {
 	    for( int i = 0 ; i < 4; i++ ) {
 		    offsetCoord.z = i;
