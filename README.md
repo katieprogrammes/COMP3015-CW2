@@ -1,25 +1,20 @@
 # COMP3015-Coursework 2 - Shadow Grove
-Shadow Grove is an interactive OpenGL forest scene built from the Project Template provided but extended into a small playable graphics prototype using the helper files provided in the module labs.
+Shadow Grove is an interactive OpenGL forest scene built from the Project Template provided and extended into a small playable graphics prototype using helper files provided during the module labs.
 
-The player explores a dark magical grove that has been attacked by corrupted red fairies. They collect blue fairies to save them while avoiding the red fairies to restore the forest. The scene uses several GLSL shader techniques from the module, including shadow mapping, bloom post-processing, procedural noise, particle animation, skybox rendering, textured terrain, and fog-style atmospheric blending. The aim of the project was to combine graphics programming techniques into a cohesive game-like scene.
+The player explores a dark magical grove that has been attacked by corrupted red fairies. The goal is to collect the blue fairies while avoiding the corrupted red fairies in order to restore the forest. The scene combines several GLSL shader techniques from the module, including shadow mapping, bloom, procedural noise, particle animation, skybox rendering, textured terrain, and fog. The aim of the project was to combine graphics programming techniques into a cohesive game-like scene.
 
 ## Dependencies
 This project uses the COMP3015 OpenGL template and helper files provided during the module labs aside from shader_m.h and camera.h which were taken from learnopenGL to support the skybox and camera movement. It also includes:
 - OpenGL 4.6 / GLSL
 - GLFW / GLAD / GLM as provided by the COMP3015 template
+- -Visual Studio 2022
+- Windows 11 Operating System
+- Both x64 Debug and x64 Release for build configuration
 
 ## How To Compile
 You can clone from github into Visual Studio then open the .sln (solution) file and you can then either run through the Debug or Release configuration (x64 version).
 
 Alternatively, the .exe file provided in Release/x64 should run without any additional setup.
-
-The project was developed and tested using:
-
--Visual Studio 2022
-
-- Windows 11 Operating System
-
-- Both x64 Debug and x64 Release for build configuration
 
 ## Controls
 Mouse - Look Around
@@ -36,11 +31,11 @@ Move into a blue fairy - collect/rescue them
 
 Move into a red fairy - trigger the corruption effect 
 
-The player is kept inside the forest area using a camera position clamp. A tree border surrounds the playable area to visually represent the boundary - this was inspired by the Pokemon games.
-
 ## Gameplay Objectives
 
-The objective is to collect all the blue fairies in the grove. Each collected fairy increases the score. When all blue fairies are collected, the grove enters the restored state and displays: "The Grove is Restored". Red fairies act as hazards. When the player gets too close to one, a corruption effect is triggered. This temporarily changes the atmosphere using darker fog and displays a corruption warning.
+The objective is to collect all the blue fairies in the grove. Each collected fairy increases the score and triggers a dust particle effect. When all blue fairies have been collected, the grove enters the restored state and displays: "The Grove is Restored". Red fairies act as hazards. 
+When the player gets too close to one, a corruption effect is triggered. This temporarily darkens the atmosphere using fog and displays a corruption warning.
+The player is kept inside the forest area using a camera position clamp. A tree border surrounds the player area to visually represent the boundary. This was inspired by the way Pokemon games often use enviromental objects to frame the playable area.
 
 ## Main Implemented Features
 
@@ -138,10 +133,21 @@ Collecting all blue fairies triggers the restored grove state.
 
 <img width="263" height="64" alt="image" src="https://github.com/user-attachments/assets/caa3c4f3-17ff-4572-b83a-aca887303870" />
 
+## Code Structure
 
+Most of the project logic is handled in "scenebasic_uniform.cpp" and "scenebasic_uniform.h".
 
+The main "update(float t)" function handles the gameplay loop, including delta time, camera movement, player boundary clamping, fairy orbit animation, collection checks, corruption collision checks and timer updates.
 
+The "render()" function has several stages:
+1) Render the shadow map from the light's point of view
+2) Render the main scene into an off screen framebuffer
+3) Render the skybox
+4) Render good and corrupted fairies
+5) Render fairy dust particles when activated
+6) Run the bright and blur passes for bloom effect
+7) Integrate the final scene and bloom texture
+8) Draw UI text
 
-
-Touching a red fairy triggers the corruption state.
-
+## What Makes the Shader Program Special
+The project combines multiple shader techniques into one interactive scene. While each feature are in different shaders, they are all connected to the theme and mechanics of the grove.
